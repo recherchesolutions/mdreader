@@ -185,7 +185,12 @@ public partial class DocumentView : UserControl
                 _readerReady = true;
                 PostReader(new { type = "setTheme", theme = EffectiveTheme() });
                 PostFontOverrides();
+                PostCustomTheme();
                 _ = RenderToReaderAsync(preserveScroll: false, scrollToLine: _lastKnownLine);
+                break;
+
+            case "bodyRendered":
+                _bodyRendered?.TrySetResult();
                 break;
 
             case "link":
@@ -351,6 +356,12 @@ public partial class DocumentView : UserControl
     }
 
     private string EffectiveTheme() => WindowsTheme.Resolve(_settings.Theme);
+
+    private void PostCustomTheme()
+    {
+        var css = _settings.CustomTheme is { } name ? ThemeLoader.ReadCustomTheme(name) : null;
+        PostReader(new { type = "setCustomCss", css = css ?? string.Empty });
+    }
 
     private void PostFontOverrides()
     {
@@ -832,8 +843,47 @@ public partial class DocumentView : UserControl
         _allowRemoteImagesThisDocument = _settings.LoadRemoteImages || _allowRemoteImagesThisDocument;
         ApplyTheme();
         PostFontOverrides();
+        PostCustomTheme();
+        ApplyZoom(_settings.Zoom);
         await RenderToReaderAsync(preserveScroll: true);
     }
+
+    /* ------------------------------------------------------------------ *
+     * Export / print (Phase 5)
+     * ------------------------------------------------------------------ */
+    private TaskCompletionSource? _bodyRendered;
+
+    /// <summary>Re-renders and waits until mermaid/katex/hljs enhancement completed.</summary>
+    public async Task<bool> WaitForFullRenderAsync(TimeSpan timeout)
+    {
+        _bodyRendered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await RenderToReaderAsync(preserveScroll: true);
+        var completed = await Task.WhenAny(_bodyRendered.Task, Task.Delay(timeout));
+        return completed == _bodyRendered.Task;
+    }
+
+    /// <summary>The reader's current rendered body DOM (post-enhancement).</summary>
+    public async Task<string> GetRenderedBodyHtmlAsync()
+    {
+        FindClear();
+        var json = await ReaderView.CoreWebView2.ExecuteScriptAsync(
+            "document.getElementById('content').innerHTML");
+        return JsonSerializer.Deserialize<string>(json) ?? string.Empty;
+    }
+
+    public string EffectiveThemeName => EffectiveTheme();
+
+    /// <summary>The current buffer text (markdown source).</summary>
+    public string CurrentText => _currentText;
+
+    public string? CustomThemeCss =>
+        _settings.CustomTheme is { } name ? ThemeLoader.ReadCustomTheme(name) : null;
+
+    public Task ExportPdfAsync(string outputPath) =>
+        ReaderView.CoreWebView2.PrintToPdfAsync(outputPath, null);
+
+    public void ShowPrintDialog() =>
+        ReaderView.CoreWebView2.ShowPrintUI(Microsoft.Web.WebView2.Core.CoreWebView2PrintDialogKind.Browser);
 
     /* ------------------------------------------------------------------ *
      * Teardown

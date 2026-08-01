@@ -45,6 +45,7 @@
         case "setToc": setTocOpen(!!msg.open); break;
         case "find": handleFind(msg); break;
         case "scrollToAnchor": scrollToAnchor(msg.id); break;
+        case "setCustomCss": setCustomCss(msg.css || ""); break;
       }
     });
   }
@@ -61,11 +62,16 @@
     state.largeDoc = !!msg.largeDoc;
 
     enhanceCodeBlocks();
-    renderMermaid();
+    var mermaidDone = renderMermaid();
     renderMath();
     wrapTables();
     buildImagePlaceholders();
     buildToc();
+
+    // Export and tests wait for this: everything asynchronous is finished.
+    (mermaidDone || Promise.resolve()).then(function () {
+      post({ type: "bodyRendered" });
+    });
 
     if (restoreLine !== null) {
       scrollToSourceLine(restoreLine);
@@ -150,7 +156,7 @@
    * Mermaid — strict security, graceful failure
    * ------------------------------------------------------------------ */
   function renderMermaid() {
-    if (!window.mermaid) { return; }
+    if (!window.mermaid) { return Promise.resolve(); }
     window.mermaid.initialize({
       startOnLoad: false,
       securityLevel: "strict",
@@ -161,8 +167,9 @@
     // Fresh blocks are <pre><code class="language-mermaid">; blocks already
     // rendered once carry their source on the container so a theme change can
     // re-render them with the matching mermaid theme.
+    var pending = [];
     content.querySelectorAll(".mermaid-diagram[data-mermaid-source]").forEach(function (container) {
-      renderOneMermaid(container, container.getAttribute("data-mermaid-source"), null);
+      pending.push(renderOneMermaid(container, container.getAttribute("data-mermaid-source"), null));
     });
 
     var blocks = content.querySelectorAll("pre > code.language-mermaid");
@@ -172,13 +179,15 @@
       var container = document.createElement("div");
       container.className = "mermaid-diagram";
       container.setAttribute("data-mermaid-source", source);
-      renderOneMermaid(container, source, pre);
+      pending.push(renderOneMermaid(container, source, pre));
     });
+
+    return Promise.all(pending);
   }
 
   function renderOneMermaid(container, source, preToReplace) {
     var id = "mermaid-" + (++state.mermaidCounter);
-    window.mermaid
+    return window.mermaid
       .render(id, source)
       .then(function (result) {
         container.innerHTML = result.svg;
@@ -470,6 +479,19 @@
     document.documentElement.setAttribute("data-theme", state.theme);
     // Mermaid bakes its theme into rendered SVG, so re-render diagrams.
     renderMermaid();
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Custom theme (a CSS file from %APPDATA%\mdreader\themes)
+   * ------------------------------------------------------------------ */
+  function setCustomCss(css) {
+    var el = document.getElementById("custom-theme");
+    if (!el) {
+      el = document.createElement("style");
+      el.id = "custom-theme";
+      document.head.appendChild(el);
+    }
+    el.textContent = css;
   }
 
   function setFont(msg) {

@@ -74,9 +74,18 @@ public static class ImagePathRewriter
                     CountParentTraversals(unescaped) <= options.MaxImagePathParentLevels &&
                     IsWithinRoot(resolved, documentRoot))
                 {
-                    var relative = Path.GetRelativePath(documentRoot, resolved).Replace(Path.DirectorySeparatorChar, '/');
-                    img.SetAttribute("data-local-path", resolved);
-                    img.SetAttribute("src", VirtualHosts.DocumentOrigin + "/" + Uri.EscapeDataString(relative).Replace("%2F", "/", StringComparison.OrdinalIgnoreCase));
+                    if (options.KeepRelativeImagePaths)
+                    {
+                        // Export path: the original relative src stays valid
+                        // next to the document in a real browser.
+                    }
+                    else
+                    {
+                        var relative = Path.GetRelativePath(documentRoot, resolved).Replace(Path.DirectorySeparatorChar, '/');
+                        img.SetAttribute("data-local-path", resolved);
+                        img.SetAttribute("src", VirtualHosts.DocumentOrigin + "/" + Uri.EscapeDataString(relative).Replace("%2F", "/", StringComparison.OrdinalIgnoreCase));
+                    }
+
                     refused = false;
                 }
             }

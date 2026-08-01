@@ -11,7 +11,7 @@ namespace MdReader.Core;
 /// no script/style raw-text elements, no comments worth keeping, and no
 /// foreign (SVG/MathML) content — every text node can be uniformly encoded.
 /// </summary>
-internal static class FastHtmlSerializer
+public static class FastHtmlSerializer
 {
     private static readonly HashSet<string> VoidElements = new(StringComparer.Ordinal)
     {

@@ -25,4 +25,12 @@ public sealed record RenderOptions
     /// may reach before it is refused. Default 3 per the security posture.
     /// </summary>
     public int MaxImagePathParentLevels { get; init; } = 3;
+
+    /// <summary>
+    /// Leave allowed relative image paths as-is instead of routing them through
+    /// the WebView document virtual host. Used by the CLI/HTML export, where the
+    /// output opens in a real browser next to the document. Policy checks
+    /// (parent-traversal limits, remote blocking) still apply.
+    /// </summary>
+    public bool KeepRelativeImagePaths { get; init; }
 }

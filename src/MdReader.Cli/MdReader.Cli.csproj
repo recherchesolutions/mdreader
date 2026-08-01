@@ -12,4 +12,11 @@
     <ProjectReference Include="..\MdReader.Core\MdReader.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="..\MdReader.Web\css\reader.css">
+      <Link>Web\css\reader.css</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>
