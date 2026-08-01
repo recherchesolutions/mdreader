@@ -100,7 +100,7 @@ public static class ImagePathRewriter
     /// The deepest ancestor a relative path is allowed to reach: the document's
     /// directory plus at most <paramref name="parentLevels"/> levels up.
     /// </summary>
-    internal static string ComputeAllowedRoot(string documentDirectory, int parentLevels)
+    public static string ComputeAllowedRoot(string documentDirectory, int parentLevels)
     {
         var root = new DirectoryInfo(documentDirectory);
         for (var i = 0; i < parentLevels && root.Parent is not null; i++)

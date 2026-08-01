@@ -495,5 +495,29 @@
     noticeTimer = setTimeout(function () { div.remove(); }, ms || 3000);
   }
 
+  /* ------------------------------------------------------------------ *
+   * Keyboard shortcuts — the WebView has focus, so app-level shortcuts
+   * are captured here and routed to the host
+   * ------------------------------------------------------------------ */
+  document.addEventListener("keydown", function (e) {
+    if (!e.ctrlKey || e.altKey) { return; }
+    var name = null;
+    switch (e.key.toLowerCase()) {
+      case "e": name = e.shiftKey ? "toggleSplit" : "toggleMode"; break;
+      case "o": name = e.shiftKey ? "toggleToc" : "openFile"; break;
+      case "f": if (!e.shiftKey) { name = "find"; } break;
+      case "s": if (!e.shiftKey) { name = "save"; } break;
+      case "p": if (!e.shiftKey) { name = "print"; } break;
+      case "w": if (!e.shiftKey) { name = "closeTab"; } break;
+      case "=": case "+": name = "zoomIn"; break;
+      case "-": name = "zoomOut"; break;
+      case "0": name = "zoomReset"; break;
+    }
+    if (name) {
+      e.preventDefault();
+      post({ type: "shortcut", name: name });
+    }
+  });
+
   post({ type: "ready" });
 })();

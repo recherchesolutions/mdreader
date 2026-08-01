@@ -1,12 +1,112 @@
-﻿<Window x:Class="MdReader.App.MainWindow"
+<Window x:Class="MdReader.App.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:MdReader.App"
-        mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
+        Title="mdreader" Width="1100" Height="800"
+        AllowDrop="True">
     <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
 
+        <Menu Grid.Row="0">
+            <MenuItem Header="_File">
+                <MenuItem Header="_Open…" InputGestureText="Ctrl+O" Click="OnOpenClick"/>
+                <MenuItem x:Name="RecentMenu" Header="Open _Recent"/>
+                <Separator/>
+                <MenuItem x:Name="SaveMenuItem" Header="_Save" InputGestureText="Ctrl+S" Click="OnSaveClick"/>
+                <Separator/>
+                <MenuItem x:Name="ExportMenu" Header="_Export">
+                    <MenuItem Header="Export to _HTML…" Click="OnExportHtmlClick"/>
+                    <MenuItem Header="Export to _PDF…" Click="OnExportPdfClick"/>
+                </MenuItem>
+                <MenuItem Header="_Print…" InputGestureText="Ctrl+P" Click="OnPrintClick"/>
+                <MenuItem Header="Copy as _Rich Text" Click="OnCopyRichTextClick"/>
+                <Separator/>
+                <MenuItem Header="Close _Tab" InputGestureText="Ctrl+W" Click="OnCloseTabClick"/>
+                <MenuItem Header="E_xit" Click="OnExitClick"/>
+            </MenuItem>
+            <MenuItem Header="_View">
+                <MenuItem x:Name="ReaderModeItem" Header="_Reader" InputGestureText="Ctrl+E" Click="OnReaderModeClick"/>
+                <MenuItem x:Name="SourceModeItem" Header="_Source" InputGestureText="Ctrl+E" Click="OnSourceModeClick"/>
+                <MenuItem x:Name="SplitModeItem" Header="Sp_lit" InputGestureText="Ctrl+Shift+E" Click="OnSplitModeClick"/>
+                <Separator/>
+                <MenuItem x:Name="TocItem" Header="Table of _Contents" InputGestureText="Ctrl+Shift+O" Click="OnTocClick"/>
+                <Separator/>
+                <MenuItem Header="Zoom _In" InputGestureText="Ctrl+Plus" Click="OnZoomInClick"/>
+                <MenuItem Header="Zoom _Out" InputGestureText="Ctrl+Minus" Click="OnZoomOutClick"/>
+                <MenuItem Header="_Reset Zoom" InputGestureText="Ctrl+0" Click="OnZoomResetClick"/>
+                <Separator/>
+                <MenuItem Header="_Theme">
+                    <MenuItem x:Name="ThemeSystemItem" Header="_System" IsCheckable="True" Click="OnThemeSystemClick"/>
+                    <MenuItem x:Name="ThemeLightItem" Header="_Light" IsCheckable="True" Click="OnThemeLightClick"/>
+                    <MenuItem x:Name="ThemeDarkItem" Header="_Dark" IsCheckable="True" Click="OnThemeDarkClick"/>
+                </MenuItem>
+            </MenuItem>
+            <MenuItem Header="_Tools">
+                <MenuItem Header="_Settings…" Click="OnSettingsClick"/>
+            </MenuItem>
+            <MenuItem Header="_Help">
+                <MenuItem Header="_About mdreader" Click="OnAboutClick"/>
+            </MenuItem>
+        </Menu>
+
+        <!-- First-run default-app suggestion bar (non-modal, dismissible) -->
+        <Border x:Name="DefaultAppBar" Grid.Row="1" Visibility="Collapsed"
+                Background="#E7F1FB" BorderBrush="#B5CFEA" BorderThickness="0,0,0,1" Padding="10,6">
+            <DockPanel LastChildFill="False">
+                <TextBlock DockPanel.Dock="Left" VerticalAlignment="Center"
+                           Text="Make mdreader the default app for Markdown files?"/>
+                <Button DockPanel.Dock="Right" Margin="6,0,0,0" Padding="10,2" Click="OnDefaultAppDontAskClick">Don't ask again</Button>
+                <Button DockPanel.Dock="Right" Margin="6,0,0,0" Padding="10,2" Click="OnDefaultAppNotNowClick">Not now</Button>
+                <Button DockPanel.Dock="Right" Padding="10,2" FontWeight="SemiBold" Click="OnDefaultAppSetClick">Set as default</Button>
+            </DockPanel>
+        </Border>
+
+        <!-- Find bar -->
+        <Border x:Name="FindBar" Grid.Row="2" Visibility="Collapsed"
+                BorderBrush="#40808080" BorderThickness="0,0,0,1" Padding="8,5">
+            <DockPanel LastChildFill="False">
+                <TextBox x:Name="FindBox" DockPanel.Dock="Left" Width="260" VerticalContentAlignment="Center"
+                         KeyDown="OnFindBoxKeyDown" TextChanged="OnFindTextChanged"/>
+                <TextBlock x:Name="FindCount" DockPanel.Dock="Left" Margin="10,0" VerticalAlignment="Center"
+                           Foreground="Gray" Text=""/>
+                <Button DockPanel.Dock="Left" Padding="8,2" Click="OnFindPrevClick" ToolTip="Previous (Shift+Enter)">▲</Button>
+                <Button DockPanel.Dock="Left" Margin="4,0,0,0" Padding="8,2" Click="OnFindNextClick" ToolTip="Next (Enter)">▼</Button>
+                <CheckBox x:Name="FindMatchCase" DockPanel.Dock="Left" Margin="10,0,0,0" VerticalAlignment="Center"
+                          Content="Match case" Checked="OnFindTextChanged" Unchecked="OnFindTextChanged"/>
+                <Button DockPanel.Dock="Right" Padding="8,2" Click="OnFindCloseClick" ToolTip="Close (Esc)">✕</Button>
+            </DockPanel>
+        </Border>
+
+        <Grid Grid.Row="3">
+            <TabControl x:Name="Tabs" Visibility="Collapsed" SelectionChanged="OnTabSelectionChanged"/>
+
+            <!-- Empty state: recent files -->
+            <StackPanel x:Name="EmptyState" VerticalAlignment="Center" HorizontalAlignment="Center">
+                <TextBlock Text="mdreader" FontSize="34" FontWeight="SemiBold" HorizontalAlignment="Center" Opacity="0.85"/>
+                <TextBlock Text="Open a markdown file to start reading." Margin="0,6,0,18"
+                           HorizontalAlignment="Center" Opacity="0.6"/>
+                <Button Content="Open file…  (Ctrl+O)" Padding="16,6" HorizontalAlignment="Center" Click="OnOpenClick"/>
+                <TextBlock x:Name="RecentHeader" Text="Recent" FontWeight="SemiBold" Margin="0,24,0,6" Visibility="Collapsed"/>
+                <ItemsControl x:Name="RecentList"/>
+            </StackPanel>
+        </Grid>
+
+        <StatusBar Grid.Row="4">
+            <StatusBarItem>
+                <TextBlock x:Name="StatusText" Text="Ready"/>
+            </StatusBarItem>
+            <StatusBarItem HorizontalAlignment="Right">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock x:Name="ZoomStatus" Text="100%" Margin="0,0,16,0" Opacity="0.7"/>
+                    <Button x:Name="ModeButton" Padding="10,1" Click="OnModeButtonClick" Content="Reader"
+                            ToolTip="Toggle Reader / Source (Ctrl+E)"/>
+                </StackPanel>
+            </StatusBarItem>
+        </StatusBar>
     </Grid>
 </Window>

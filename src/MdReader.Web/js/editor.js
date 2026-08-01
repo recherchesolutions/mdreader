@@ -78,6 +78,26 @@
       }
     }, "!suggestWidgetVisible && !inSnippetMode");
 
+    // App-level shortcuts not owned by Monaco route to the host.
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyE, function () {
+      post({ type: "shortcut", name: "toggleSplit" });
+    });
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyO, function () {
+      post({ type: "shortcut", name: "openFile" });
+    });
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyW, function () {
+      post({ type: "shortcut", name: "closeTab" });
+    });
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Equal, function () {
+      post({ type: "shortcut", name: "zoomIn" });
+    });
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Minus, function () {
+      post({ type: "shortcut", name: "zoomOut" });
+    });
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Digit0, function () {
+      post({ type: "shortcut", name: "zoomReset" });
+    });
+
     post({ type: "ready" });
     pending.forEach(handleMessage);
     pending = [];
