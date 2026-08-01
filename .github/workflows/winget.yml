@@ -1,0 +1,24 @@
+name: Winget
+
+# Submits/updates the winget manifest when a release is published, so
+# `winget install mdreader` works. The FIRST submission must be done manually
+# (see packaging/winget/README.md); this workflow handles every update after.
+#
+# Requires a classic PAT with `public_repo` scope in the WINGET_TOKEN secret
+# (used to fork/PR microsoft/winget-pkgs).
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  winget:
+    runs-on: windows-latest
+    steps:
+      - name: Submit to winget-pkgs
+        uses: vedantmgoyal9/winget-releaser@main
+        with:
+          identifier: mdreader.mdreader
+          installers-regex: 'mdreader-setup-.*\.exe$'
+          token: ${{ secrets.WINGET_TOKEN }}

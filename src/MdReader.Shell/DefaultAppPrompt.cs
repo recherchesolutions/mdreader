@@ -16,6 +16,8 @@ namespace MdReader.Shell;
 /// Note: IApplicationAssociationRegistrationUI::LaunchAdvancedAssociationUI is
 /// deprecated on Windows 10+ and deliberately not used here.
 /// </summary>
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage(
+    Justification = "Thin wrapper over SHOpenWithDialog / ms-settings; pops OS UI, not unit-testable")]
 public static class DefaultAppPrompt
 {
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]

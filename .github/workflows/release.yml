@@ -1,0 +1,108 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Derive version from tag
+        id: version
+        run: |
+          $v = "${{ github.ref_name }}".TrimStart("v")
+          "version=$v" >> $env:GITHUB_OUTPUT
+
+      - name: Test
+        run: dotnet test tests/MdReader.Core.Tests tests/MdReader.Shell.Tests -c Release
+
+      - name: Publish app (self-contained win-x64)
+        run: >
+          dotnet publish src/MdReader.App -c Release -r win-x64
+          --self-contained true -p:PublishReadyToRun=true
+          -p:Version=${{ steps.version.outputs.version }}
+          -o publish/app
+
+      - name: Publish mdreader-convert (single file)
+        run: >
+          dotnet publish src/MdReader.Cli -c Release -r win-x64
+          --self-contained true -p:PublishSingleFile=true
+          -p:Version=${{ steps.version.outputs.version }}
+          -o publish/cli
+
+      - name: Sign binaries (optional — skipped without secrets)
+        if: ${{ vars.AZURE_TRUSTED_SIGNING_ENDPOINT != '' }}
+        uses: azure/trusted-signing-action@v0
+        with:
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+          endpoint: ${{ vars.AZURE_TRUSTED_SIGNING_ENDPOINT }}
+          trusted-signing-account-name: ${{ vars.AZURE_TRUSTED_SIGNING_ACCOUNT }}
+          certificate-profile-name: ${{ vars.AZURE_TRUSTED_SIGNING_PROFILE }}
+          files-folder: publish
+          files-folder-filter: exe,dll
+          files-folder-recurse: true
+
+      - name: Build installer
+        run: |
+          choco install innosetup --no-progress -y
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" `
+            /DAppVersion=${{ steps.version.outputs.version }} `
+            installer\MdReader.Installer\mdreader.iss
+
+      - name: Sign installer (optional — skipped without secrets)
+        if: ${{ vars.AZURE_TRUSTED_SIGNING_ENDPOINT != '' }}
+        uses: azure/trusted-signing-action@v0
+        with:
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+          endpoint: ${{ vars.AZURE_TRUSTED_SIGNING_ENDPOINT }}
+          trusted-signing-account-name: ${{ vars.AZURE_TRUSTED_SIGNING_ACCOUNT }}
+          certificate-profile-name: ${{ vars.AZURE_TRUSTED_SIGNING_PROFILE }}
+          files-folder: installer\MdReader.Installer\Output
+          files-folder-filter: exe
+
+      - name: Assemble artifacts
+        run: |
+          $v = "${{ steps.version.outputs.version }}"
+          New-Item -ItemType Directory artifacts | Out-Null
+          Copy-Item "installer\MdReader.Installer\Output\mdreader-setup-$v.exe" artifacts\
+          # Portable ZIP: many corporate users cannot run installers.
+          Compress-Archive -Path publish\app\* -DestinationPath "artifacts\mdreader-$v-portable-win-x64.zip"
+          Copy-Item publish\cli\mdreader-convert.exe "artifacts\mdreader-convert-$v-win-x64.exe"
+          # Checksums
+          Get-ChildItem artifacts | ForEach-Object {
+            "{0}  {1}" -f (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower(), $_.Name
+          } | Set-Content artifacts\SHA256SUMS -Encoding ascii
+
+      - name: Generate changelog section
+        id: changelog
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $prev = git describe --tags --abbrev=0 "$tag^" 2>$null
+          if ($LASTEXITCODE -ne 0) { $prev = $null }
+          $range = if ($prev) { "$prev..$tag" } else { $tag }
+          $log = git log $range --pretty=format:"- %s (%h)" --no-merges
+          $body = "## Changes`n`n$($log -join "`n")"
+          $body | Set-Content release-notes.md
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          body_path: release-notes.md
+          files: |
+            artifacts/*

@@ -480,3 +480,9 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# build artifacts
+publish/
+coverage-results/
+installer/MdReader.Installer/Output/
+

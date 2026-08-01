@@ -31,8 +31,8 @@
                           DefaultBackgroundColor="Transparent"/>
             <GridSplitter x:Name="Splitter" Grid.Column="1" Width="4" Visibility="Collapsed"
                           HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="#40808080"/>
-            <wv2:WebView2 x:Name="ReaderView" Grid.Column="2"
-                          DefaultBackgroundColor="Transparent"/>
+            <!-- The reader WebView2 is created in code (or adopted pre-warmed
+                 from WebViewPool) and inserted at column 2. -->
         </Grid>
     </Grid>
 </UserControl>

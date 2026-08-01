@@ -12,21 +12,9 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
+        // --version and the fast second-instance handoff are handled in
+        // Program.Main before any Application exists.
         var args = CommandLine.Parse(e.Args);
-
-        if (args.ShowVersion)
-        {
-            // --version prints to an attached console (or a message box when
-            // launched without one) and exits.
-            var version = typeof(App).Assembly.GetName().Version?.ToString(3) ?? "dev";
-            if (!ConsoleInterop.TryWriteLine($"mdreader {version}"))
-            {
-                MessageBox.Show($"mdreader {version}", "mdreader", MessageBoxButton.OK, MessageBoxImage.Information);
-            }
-
-            Shutdown(0);
-            return;
-        }
 
         DiagLog.Write($"startup: args=[{string.Join(" ", e.Args)}]");
         _settings = AppSettings.Load();

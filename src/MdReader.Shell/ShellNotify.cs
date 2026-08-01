@@ -3,6 +3,8 @@ using System.Runtime.InteropServices;
 namespace MdReader.Shell;
 
 /// <summary>Tells Explorer that file associations changed so icons/menus refresh.</summary>
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage(
+    Justification = "Single SHChangeNotify P/Invoke; no observable state to assert")]
 public static class ShellNotify
 {
     private const int SHCNE_ASSOCCHANGED = 0x08000000;

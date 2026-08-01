@@ -53,6 +53,9 @@ public partial class DocumentView : UserControl
     public event EventHandler<(int total, int current)>? FindResultChanged;
     public event EventHandler<string>? StatusMessage;
 
+    /// <summary>Created in code or adopted pre-warmed from <see cref="WebViewPool"/>.</summary>
+    private WebView2 ReaderView = null!;
+
     public DocumentView(string filePath, AppSettings settings)
     {
         InitializeComponent();
@@ -72,13 +75,48 @@ public partial class DocumentView : UserControl
         _file = TextFileIO.Read(FilePath);
         _currentText = _file.Text;
 
-        DiagLog.Write("initializing reader webview");
-        await WebViewFactory.InitializeAsync(ReaderView);
-        DiagLog.Write("reader webview initialized");
+        var pooled = WebViewPool.TryTake();
+        bool pageAlreadyLoaded;
+        if (pooled is { } warm)
+        {
+            DiagLog.Write($"adopting pre-warmed reader (pageReady={warm.PageReady})");
+            ReaderView = warm.WebView;
+            pageAlreadyLoaded = true;
+            _readerReady = warm.PageReady;
+        }
+        else
+        {
+            DiagLog.Write("initializing reader webview (cold)");
+            ReaderView = new WebView2 { DefaultBackgroundColor = System.Drawing.Color.Transparent };
+            pageAlreadyLoaded = false;
+        }
+
+        Grid.SetColumn(ReaderView, 2);
+        ViewGrid.Children.Add(ReaderView);
+
+        if (!pageAlreadyLoaded)
+        {
+            await WebViewFactory.InitializeAsync(ReaderView);
+            DiagLog.Write("reader webview initialized");
+        }
+
         ConfigureReaderCore(ReaderView.CoreWebView2);
         ApplyZoom(_settings.Zoom);
 
-        NavigateReader();
+        if (_allowRemoteImagesThisDocument || !pageAlreadyLoaded)
+        {
+            // Needs its own navigation (remote-image CSP variant, or cold path).
+            NavigateReader();
+        }
+        else if (_readerReady)
+        {
+            // Adopted page finished loading while in the pool: skip the wait
+            // and drive it directly.
+            OnReaderPageReady();
+        }
+        // else: the adopted page is still loading; its 'ready' message arrives
+        // through the handler wired in ConfigureReaderCore.
+
         StartWatcher();
 
         if (initialMode != ViewMode.Reader)
@@ -183,10 +221,7 @@ public partial class DocumentView : UserControl
         {
             case "ready":
                 _readerReady = true;
-                PostReader(new { type = "setTheme", theme = EffectiveTheme() });
-                PostFontOverrides();
-                PostCustomTheme();
-                _ = RenderToReaderAsync(preserveScroll: false, scrollToLine: _lastKnownLine);
+                OnReaderPageReady();
                 break;
 
             case "bodyRendered":
@@ -232,6 +267,15 @@ public partial class DocumentView : UserControl
                 ShortcutInvoked?.Invoke(this, root.GetProperty("name").GetString() ?? string.Empty);
                 break;
         }
+    }
+
+    /// <summary>Runs once the reader page is live (its own 'ready' or pool adoption).</summary>
+    private void OnReaderPageReady()
+    {
+        PostReader(new { type = "setTheme", theme = EffectiveTheme() });
+        PostFontOverrides();
+        PostCustomTheme();
+        _ = RenderToReaderAsync(preserveScroll: false, scrollToLine: _lastKnownLine);
     }
 
     private void HandleDocumentLink(string href)

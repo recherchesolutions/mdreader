@@ -62,14 +62,14 @@
     state.largeDoc = !!msg.largeDoc;
 
     enhanceCodeBlocks();
-    var mermaidDone = renderMermaid();
-    renderMath();
+    var mermaidDone = maybeRenderMermaid();
+    var mathDone = maybeRenderMath();
     wrapTables();
     buildImagePlaceholders();
     buildToc();
 
     // Export and tests wait for this: everything asynchronous is finished.
-    (mermaidDone || Promise.resolve()).then(function () {
+    Promise.all([mermaidDone, mathDone]).then(function () {
       post({ type: "bodyRendered" });
     });
 
@@ -150,6 +150,41 @@
     document.body.appendChild(ta);
     ta.select();
     try { document.execCommand("copy"); } finally { ta.remove(); }
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Lazy vendor loading — mermaid (3.4MB) and katex (1MB) parse slowly, so
+   * they load only when a document actually needs them
+   * ------------------------------------------------------------------ */
+  var vendorLoads = {};
+
+  function loadVendorScript(src) {
+    if (!vendorLoads[src]) {
+      vendorLoads[src] = new Promise(function (resolve, reject) {
+        var script = document.createElement("script");
+        script.src = src;
+        script.onload = resolve;
+        script.onerror = function () { reject(new Error("failed to load " + src)); };
+        document.head.appendChild(script);
+      });
+    }
+    return vendorLoads[src];
+  }
+
+  function maybeRenderMermaid() {
+    var needed = content.querySelector("pre > code.language-mermaid, .mermaid-diagram[data-mermaid-source]");
+    if (!needed) { return Promise.resolve(); }
+    return loadVendorScript("/vendor/mermaid/mermaid.min.js")
+      .then(renderMermaid)
+      .catch(function () { return undefined; });
+  }
+
+  function maybeRenderMath() {
+    var needed = content.querySelector("span.math, div.math");
+    if (!needed) { return Promise.resolve(); }
+    return loadVendorScript("/vendor/katex/katex.min.js")
+      .then(renderMath)
+      .catch(function () { return undefined; });
   }
 
   /* ------------------------------------------------------------------ *
@@ -478,7 +513,7 @@
     state.theme = theme === "dark" ? "dark" : "light";
     document.documentElement.setAttribute("data-theme", state.theme);
     // Mermaid bakes its theme into rendered SVG, so re-render diagrams.
-    renderMermaid();
+    maybeRenderMermaid();
   }
 
   /* ------------------------------------------------------------------ *

@@ -8,6 +8,8 @@
     <AssemblyName>mdreader</AssemblyName>
     <ApplicationIcon>Assets\mdreader.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- Custom Main: fast version flag and pre-WPF single-instance handoff. -->
+    <StartupObject>MdReader.App.Program</StartupObject>
     <Description>mdreader — a fast, beautiful markdown reader for Windows.</Description>
   </PropertyGroup>
 

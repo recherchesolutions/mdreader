@@ -83,6 +83,9 @@
         </Border>
 
         <Grid Grid.Row="3">
+            <!-- Hidden 0x0 host where WebViewPool pre-warms the next reader. -->
+            <Canvas x:Name="WebViewWarmHost" Width="0" Height="0"
+                    HorizontalAlignment="Left" VerticalAlignment="Top"/>
             <TabControl x:Name="Tabs" Visibility="Collapsed" SelectionChanged="OnTabSelectionChanged"/>
 
             <!-- Empty state: recent files -->

@@ -32,6 +32,22 @@ public sealed class SingleInstance : IDisposable
     public event EventHandler<Activation>? Activated;
 
     /// <summary>
+    /// Fast pre-WPF handoff: if an owner instance exists, send it the
+    /// activation and return true. The mutex existence check keeps the
+    /// no-owner case instant (no pipe connect timeout).
+    /// </summary>
+    public static bool TryActivateExistingInstance(Activation activation)
+    {
+        if (!Mutex.TryOpenExisting(MutexName, out var existing))
+        {
+            return false;
+        }
+
+        existing.Dispose();
+        return TrySendToOwner(activation);
+    }
+
+    /// <summary>
     /// Tries to become the owning instance. Returns true when this process owns
     /// the app; false when the arguments were handed to an existing instance
     /// (the caller should exit).

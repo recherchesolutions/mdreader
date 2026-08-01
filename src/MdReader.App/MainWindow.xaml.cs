@@ -31,6 +31,9 @@ public partial class MainWindow : Window
         Drop += OnFileDrop;
         DragOver += OnDragOver;
         Closing += OnWindowClosing;
+
+        // Start pre-warming a reader WebView once the visual tree is live.
+        Loaded += (_, _) => WebViewPool.Attach(WebViewWarmHost);
     }
 
     public DocumentView? ActiveDocument =>

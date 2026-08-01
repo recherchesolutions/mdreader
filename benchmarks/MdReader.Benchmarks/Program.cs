@@ -1,8 +1,8 @@
+using System.Diagnostics;
+using System.Text;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Running;
 using MdReader.Core;
-using System.Diagnostics;
-using System.Text;
 
 // `--quick` runs a fast stopwatch pass (used by CI and the phase-gate reports);
 // no arguments runs the full BenchmarkDotNet suite.

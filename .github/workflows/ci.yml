@@ -1,0 +1,95 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Format check
+        run: dotnet format --verify-no-changes --no-restore
+
+      - name: Build
+        run: dotnet build -c Release --no-restore
+
+      - name: Unit tests with coverage (Core + Shell)
+        run: >
+          dotnet test tests/MdReader.Core.Tests tests/MdReader.Shell.Tests
+          -c Release --no-build
+          --collect:"XPlat Code Coverage"
+          --results-directory coverage
+
+      - name: Integration tests (WebView2 + FlaUI)
+        # UI automation on hosted runners can be flaky; failures here are
+        # reported but do not block the build.
+        continue-on-error: true
+        run: dotnet test tests/MdReader.Integration.Tests -c Release --no-build
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage/**/coverage.cobertura.xml
+
+  installer:
+    runs-on: windows-latest
+    needs: build-test
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Publish app
+        run: >
+          dotnet publish src/MdReader.App -c Release -r win-x64
+          --self-contained true -p:PublishReadyToRun=true
+          -o publish/app
+
+      - name: Build installer
+        run: |
+          choco install innosetup --no-progress -y
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" installer\MdReader.Installer\mdreader.iss
+
+      - name: Install silently
+        run: |
+          $setup = Get-ChildItem installer\MdReader.Installer\Output\mdreader-setup-*.exe | Select-Object -First 1
+          Start-Process $setup.FullName -ArgumentList "/VERYSILENT","/NORESTART","/SUPPRESSMSGBOXES" -Wait
+
+      - name: Assert install state
+        run: |
+          $exe = "$env:LOCALAPPDATA\Programs\mdreader\mdreader.exe"
+          if (-not (Test-Path $exe)) { throw "mdreader.exe not installed at $exe" }
+          # GUI subsystem exe: wait for exit explicitly to get a real exit code.
+          $p = Start-Process $exe -ArgumentList "--version" -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "--version failed with $($p.ExitCode)" }
+          $progId = Get-ItemProperty "HKCU:\Software\Classes\MdReader.Markdown.1" -ErrorAction Stop
+          if ($progId.'(default)' -ne 'Markdown Document') { throw "ProgId missing" }
+          $openWith = Get-Item "HKCU:\Software\Classes\.md\OpenWithProgids" -ErrorAction Stop
+          if ($openWith.GetValueNames() -notcontains 'MdReader.Markdown.1') { throw "OpenWithProgids missing" }
+          # The guardrail: UserChoice must not have been created by the install.
+          $uc = Get-Item "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.md\UserChoice" -ErrorAction SilentlyContinue
+          if ($uc -and $uc.GetValue('ProgId') -eq 'MdReader.Markdown.1') { throw "installer wrote UserChoice!" }
+
+      - name: Uninstall silently and assert clean removal
+        run: |
+          $uninstall = "$env:LOCALAPPDATA\Programs\mdreader\unins000.exe"
+          Start-Process $uninstall -ArgumentList "/VERYSILENT","/NORESTART","/SUPPRESSMSGBOXES" -Wait
+          Start-Sleep 3
+          if (Test-Path "$env:LOCALAPPDATA\Programs\mdreader\mdreader.exe") { throw "exe not removed" }
+          if (Get-Item "HKCU:\Software\Classes\MdReader.Markdown.1" -ErrorAction SilentlyContinue) { throw "ProgId not removed" }
+          $openWith = Get-Item "HKCU:\Software\Classes\.md\OpenWithProgids" -ErrorAction SilentlyContinue
+          if ($openWith -and ($openWith.GetValueNames() -contains 'MdReader.Markdown.1')) { throw "OpenWithProgids value not removed" }
