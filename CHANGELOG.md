@@ -54,6 +54,6 @@ All notable changes to mdreader are documented here. The format follows
 - Inno Setup installer (per-user, silent-install capable), portable ZIP,
   winget workflow.
 
-[0.3.0]: https://github.com/mdreader/mdreader/commits/main
-[0.2.0]: https://github.com/mdreader/mdreader/commits/main
-[0.1.0]: https://github.com/mdreader/mdreader/commits/main
+[0.3.0]: https://github.com/recherchesolutions/mdreader/commits/main
+[0.2.0]: https://github.com/recherchesolutions/mdreader/commits/main
+[0.1.0]: https://github.com/recherchesolutions/mdreader/commits/main

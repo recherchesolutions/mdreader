@@ -9,11 +9,11 @@
 3. Generate and submit:
 
    ```powershell
-   wingetcreate new https://github.com/<owner>/mdreader/releases/download/v<version>/mdreader-setup-<version>.exe
+   wingetcreate new https://github.com/recherchesolutions/mdreader/releases/download/v<version>/mdreader-setup-<version>.exe
    ```
 
-   Use `mdreader.mdreader` as the package identifier and fill in the metadata
-   from `manifest-template.yaml` in this folder.
+   Use `RechercheSolutions.mdreader` as the package identifier and fill in the
+   metadata from `manifest-template.yaml` in this folder.
 4. `wingetcreate submit` opens the PR against `microsoft/winget-pkgs`.
 
 ## Every release after

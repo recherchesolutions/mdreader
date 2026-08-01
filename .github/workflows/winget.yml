@@ -19,6 +19,6 @@ jobs:
       - name: Submit to winget-pkgs
         uses: vedantmgoyal9/winget-releaser@main
         with:
-          identifier: mdreader.mdreader
+          identifier: RechercheSolutions.mdreader
           installers-regex: 'mdreader-setup-.*\.exe$'
           token: ${{ secrets.WINGET_TOKEN }}

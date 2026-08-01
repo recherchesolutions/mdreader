@@ -10,9 +10,10 @@ vault, no notebook, no sync, no account.
 
 ## Features
 
-- **Reader first.** A calm, readable document view: centered ~72-character
-  column, real typographic hierarchy, light and dark themes that follow
-  Windows, WCAG AA contrast.
+- **Reader first.** A calm, readable document view with real typographic
+  hierarchy, light and dark themes that follow Windows, and WCAG AA contrast.
+  Content follows the window width by default; a classic centered
+  ~72-character reading column is one setting away.
 - **CommonMark + GFM** via Markdig: tables (pipe and grid), task lists,
   footnotes, definition lists, strikethrough, sub/superscript, abbreviations,
   citations, custom containers, YAML front matter (rendered as a collapsed
@@ -64,7 +65,7 @@ without your say-so).
 **Build from source**:
 
 ```powershell
-git clone https://github.com/mdreader/mdreader
+git clone https://github.com/recherchesolutions/mdreader
 cd mdreader
 dotnet build -c Release
 dotnet run --project src/MdReader.App -c Release -- path\to\file.md
