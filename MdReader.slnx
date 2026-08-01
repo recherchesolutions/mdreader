@@ -1,0 +1,16 @@
+<Solution>
+  <Folder Name="/benchmarks/">
+    <Project Path="benchmarks/MdReader.Benchmarks/MdReader.Benchmarks.csproj" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/MdReader.App/MdReader.App.csproj" />
+    <Project Path="src/MdReader.Cli/MdReader.Cli.csproj" />
+    <Project Path="src/MdReader.Core/MdReader.Core.csproj" />
+    <Project Path="src/MdReader.Shell/MdReader.Shell.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/MdReader.Core.Tests/MdReader.Core.Tests.csproj" />
+    <Project Path="tests/MdReader.Integration.Tests/MdReader.Integration.Tests.csproj" />
+    <Project Path="tests/MdReader.Shell.Tests/MdReader.Shell.Tests.csproj" />
+  </Folder>
+</Solution>

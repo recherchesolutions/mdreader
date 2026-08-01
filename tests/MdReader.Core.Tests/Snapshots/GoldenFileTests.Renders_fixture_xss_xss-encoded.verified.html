@@ -1,0 +1,9 @@
+﻿<h1 id="xss--encoded-and-case-mixed-variants" data-source-line="1">XSS — encoded and case-mixed variants</h1>
+<p data-source-line="3">&lt;img src=x oNeRrOr=alert(1)&gt;</p>
+<p data-source-line="5">&lt;img src=x onerror=alert(1)&gt;</p>
+<p data-source-line="7">&lt;a href="javascript:alert(1)"&gt;entity-encoded scheme&lt;/a&gt;</p>
+<p data-source-line="9">&lt;a href="jav	ascript:alert(1)"&gt;tab-split scheme&lt;/a&gt;</p>
+<p data-source-line="11">&lt;a href="jav
+ascript:alert(1)"&gt;newline-split scheme&lt;/a&gt;</p>
+<p data-source-line="14">&lt;img src="x<code> </code>onerror=alert(1)"&gt;</p>
+<p data-source-line="16">&lt;a href="javascript:alert(1)"&gt;padded entities&lt;/a&gt;</p>

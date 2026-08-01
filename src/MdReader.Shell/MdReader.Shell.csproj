@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- Windows-only: registry access and shell notifications. -->
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <RootNamespace>MdReader.Shell</RootNamespace>
+    <Description>File association registration, ProgId management, and shell notification for mdreader.</Description>
+  </PropertyGroup>
+
+</Project>

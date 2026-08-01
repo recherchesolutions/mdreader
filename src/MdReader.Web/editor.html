@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<!--
+  Editor CSP. Relaxations from the strictest baseline, and why:
+  - style-src 'unsafe-inline': Monaco injects dynamic <style> elements for its
+    tokenization themes and view layout.
+  - worker-src 'self': Monaco runs its text model services in a web worker
+    loaded from the bundled vendor folder.
+  - img-src data:: Monaco uses data: URIs for a few internal icons.
+-->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; worker-src 'self'; connect-src 'none'">
+<title>mdreader — source</title>
+<style>
+  html, body { height: 100%; margin: 0; }
+  #editor { position: absolute; inset: 0; }
+</style>
+</head>
+<body>
+<div id="editor"></div>
+<script src="/vendor/monaco/vs/loader.js"></script>
+<script src="/js/editor.js"></script>
+</body>
+</html>

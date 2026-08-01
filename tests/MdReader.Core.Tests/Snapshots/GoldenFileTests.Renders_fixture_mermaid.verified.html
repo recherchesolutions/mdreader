@@ -1,0 +1,13 @@
+﻿<h1 id="mermaid" data-source-line="1">Mermaid</h1>
+<p data-source-line="3">A valid diagram:</p>
+<pre><code class="language-mermaid" data-source-line="5">graph TD
+    A[Start] --&gt; B{Decision}
+    B --&gt;|yes| C[Do the thing]
+    B --&gt;|no| D[Skip it]
+</code></pre>
+<p data-source-line="12">An invalid diagram (must show the code block with an inline error note, never a
+blank space):</p>
+<pre><code class="language-mermaid" data-source-line="15">graph TD
+    A[Unclosed --&gt; ???
+    this is not valid mermaid
+</code></pre>

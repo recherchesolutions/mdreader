@@ -1,0 +1,573 @@
+/* ==========================================================================
+   mdreader — reader.css
+   ==========================================================================
+   The entire visual identity of the reader lives in this one file.
+
+   Theming model:
+   - Every color used anywhere below is defined as a CSS custom property in
+     the two palette blocks that follow (light, then dark).
+   - The app sets  data-theme="light" | "dark"  on <html> to follow the
+     Windows app theme (or the user's override).
+   - A custom theme is a CSS file in %APPDATA%\mdreader\themes\ that simply
+     re-declares any of these variables; it is appended after this file.
+
+   Contrast: both palettes are WCAG AA checked for body text (≥ 4.5:1) and
+   muted text (≥ 4.5:1 against the page background).
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   Palette — light
+   -------------------------------------------------------------------------- */
+:root,
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  /* Page */
+  --bg: #ffffff;              /* page background */
+  --fg: #1f2328;              /* body text — 15.4:1 on --bg */
+  --fg-muted: #57606a;        /* secondary text — 5.7:1 on --bg */
+
+  /* Accent */
+  --accent: #0a5dc2;          /* links, active TOC entry — 5.4:1 on --bg */
+  --accent-hover: #094ea3;
+
+  /* Surfaces */
+  --surface-code: #f6f8fa;    /* code block tint */
+  --surface-card: #f6f8fa;    /* front matter card, placeholders */
+  --surface-hover: #eef1f4;
+
+  /* Lines */
+  --rule: #d1d9e0;            /* hr, table row separators */
+  --rule-strong: #b4bfc9;     /* blockquote bar */
+
+  /* Inline code */
+  --inline-code-bg: #eff1f3;
+  --inline-code-fg: #24292f;
+
+  /* Marks and finds */
+  --find-hit-bg: #fff2b3;
+  --find-hit-current-bg: #ffd166;
+  --mark-bg: #fff8c5;
+
+  /* Notices */
+  --notice-fg: #57606a;
+  --notice-border: #d1d9e0;
+  --error-fg: #a40e26;        /* 7.0:1 on --bg */
+
+  /* Syntax highlighting (highlight.js hooks) — GitHub-light-like, AA on --surface-code */
+  --hl-comment: #59626d;
+  --hl-keyword: #a12236;
+  --hl-string: #0a3069;
+  --hl-title: #6639ba;
+  --hl-literal: #0550ae;
+  --hl-attr: #0550ae;
+  --hl-meta: #953800;
+}
+
+/* --------------------------------------------------------------------------
+   Palette — dark
+   -------------------------------------------------------------------------- */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg: #1c2128;              /* softened dark, not pure black */
+  --fg: #d6dde4;              /* 11.9:1 on --bg */
+  --fg-muted: #99a5b1;        /* 6.1:1 on --bg */
+
+  --accent: #6cb2ff;          /* 6.9:1 on --bg */
+  --accent-hover: #8ec2ff;
+
+  --surface-code: #242b33;
+  --surface-card: #242b33;
+  --surface-hover: #2b333d;
+
+  --rule: #3a434e;
+  --rule-strong: #4d5866;
+
+  --inline-code-bg: #2b333d;
+  --inline-code-fg: #d6dde4;
+
+  --find-hit-bg: #5c4a00;
+  --find-hit-current-bg: #8a6d00;
+  --mark-bg: #4d3f00;
+
+  --notice-fg: #99a5b1;
+  --notice-border: #3a434e;
+  --error-fg: #ff8b9e;
+
+  --hl-comment: #8f9ba8;
+  --hl-keyword: #ff7b72;
+  --hl-string: #a5d6ff;
+  --hl-title: #d2a8ff;
+  --hl-literal: #79c0ff;
+  --hl-attr: #79c0ff;
+  --hl-meta: #ffa657;
+}
+
+/* --------------------------------------------------------------------------
+   Typography scale and page frame
+   --------------------------------------------------------------------------
+   Prose uses the system UI stack (Segoe UI Variable on Windows 11); code uses
+   Cascadia Code with Consolas fallback. Base 16px, 1.65 line height. The
+   content column is capped at 72–78 characters ≈ 720px and centered.
+   -------------------------------------------------------------------------- */
+:root {
+  --font-prose: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-heading: "Segoe UI Variable Display", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-code: "Cascadia Code", "Cascadia Mono", Consolas, "Courier New", monospace;
+
+  --content-width: 720px;
+  --font-size: 16px;   /* overridable from settings */
+  --line-height: 1.65;
+}
+
+* { box-sizing: border-box; }
+
+html {
+  background: var(--bg);
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-prose);
+  font-size: var(--font-size);
+  line-height: var(--line-height);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* The single content column. Generous vertical margins give the document
+   breathing room; horizontal padding keeps narrow windows comfortable. */
+main.content {
+  max-width: var(--content-width);
+  margin: 0 auto;
+  padding: 48px 32px 96px;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--accent) 25%, transparent);
+}
+
+/* --------------------------------------------------------------------------
+   Headings — real hierarchy: generous space above, tight below
+   -------------------------------------------------------------------------- */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  line-height: 1.25;
+  margin: 2em 0 0.5em;
+  scroll-margin-top: 24px; /* anchor jumps leave a little air above */
+}
+
+h1 { font-size: 2em;    letter-spacing: -0.015em; margin-top: 0.75em; }
+h2 { font-size: 1.5em;  letter-spacing: -0.01em;
+     padding-bottom: 0.25em; border-bottom: 1px solid var(--rule); }
+h3 { font-size: 1.25em; }
+h4 { font-size: 1.05em; }
+h5 { font-size: 1em; }
+h6 { font-size: 0.9em; color: var(--fg-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+
+h1:first-child { margin-top: 0; }
+
+/* --------------------------------------------------------------------------
+   Prose basics
+   -------------------------------------------------------------------------- */
+p, ul, ol, dl, table, blockquote, pre, figure {
+  margin: 0 0 1em;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--accent-hover);
+  text-decoration: underline;
+}
+
+hr {
+  border: none;
+  border-top: 1px solid var(--rule);
+  margin: 2.5em auto;
+  width: 100%;
+}
+
+mark { background: var(--mark-bg); color: var(--fg); border-radius: 2px; padding: 0 2px; }
+
+abbr[title] { text-decoration: underline dotted; cursor: help; }
+
+kbd {
+  font-family: var(--font-code);
+  font-size: 0.85em;
+  background: var(--surface-code);
+  border: 1px solid var(--rule);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  padding: 0.1em 0.4em;
+}
+
+/* Lists */
+ul, ol { padding-left: 1.6em; }
+li { margin: 0.2em 0; }
+li > p { margin-bottom: 0.4em; }
+
+/* Task lists: real checkboxes, inert in Reader mode */
+ul.contains-task-list { list-style: none; padding-left: 0.4em; }
+li.task-list-item { display: flex; gap: 0.5em; align-items: baseline; }
+li.task-list-item > input[type="checkbox"] {
+  accent-color: var(--accent);
+  transform: translateY(2px);
+  margin: 0;
+}
+
+/* Definition lists */
+dt { font-weight: 600; margin-top: 0.75em; }
+dd { margin-left: 1.5em; color: var(--fg); }
+
+/* --------------------------------------------------------------------------
+   Blockquotes — left rule, slightly muted, no background fill
+   -------------------------------------------------------------------------- */
+blockquote {
+  border-left: 3px solid var(--rule-strong);
+  margin-left: 0;
+  padding: 0.1em 0 0.1em 1.25em;
+  color: var(--fg-muted);
+}
+
+blockquote > :last-child { margin-bottom: 0; }
+
+/* --------------------------------------------------------------------------
+   Code — soft surface tint, rounded corners, no border
+   -------------------------------------------------------------------------- */
+code {
+  font-family: var(--font-code);
+  font-size: 0.875em;
+}
+
+/* Inline code */
+:not(pre) > code {
+  background: var(--inline-code-bg);
+  color: var(--inline-code-fg);
+  border-radius: 4px;
+  padding: 0.15em 0.4em;
+}
+
+pre {
+  background: var(--surface-code);
+  border-radius: 8px;
+  padding: 14px 16px;
+  overflow-x: auto;
+  line-height: 1.5;
+}
+
+pre > code { background: none; padding: 0; display: block; }
+
+/* Copy button, shown on hover over a code block */
+.code-block-wrap { position: relative; }
+.code-block-wrap > button.copy-code {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  opacity: 0;
+  transition: opacity 120ms ease;
+  font: 500 12px var(--font-prose);
+  color: var(--fg-muted);
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 3px 10px;
+  cursor: pointer;
+}
+.code-block-wrap:hover > button.copy-code,
+.code-block-wrap > button.copy-code:focus-visible { opacity: 1; }
+.code-block-wrap > button.copy-code:hover { background: var(--surface-hover); color: var(--fg); }
+
+/* --------------------------------------------------------------------------
+   Tables — subtle row separators, header by weight not color, and a
+   horizontal scroll container so wide tables never break the layout
+   -------------------------------------------------------------------------- */
+.table-wrap { overflow-x: auto; margin: 0 0 1em; }
+.table-wrap > table { margin: 0; }
+
+table {
+  border-collapse: collapse;
+  width: max-content;
+  min-width: 50%;
+  max-width: none;
+  font-size: 0.95em;
+}
+
+th, td {
+  padding: 8px 14px;
+  text-align: left;
+  border-bottom: 1px solid var(--rule);
+  vertical-align: top;
+}
+
+thead th {
+  font-weight: 600;
+  border-bottom: 2px solid var(--rule-strong);
+}
+
+tbody tr:hover { background: color-mix(in srgb, var(--surface-hover) 55%, transparent); }
+
+/* --------------------------------------------------------------------------
+   Images and figures
+   -------------------------------------------------------------------------- */
+img { max-width: 100%; height: auto; }
+
+figure { text-align: center; }
+figcaption { color: var(--fg-muted); font-size: 0.9em; margin-top: 0.4em; }
+
+/* Placeholder for remote images blocked by the privacy policy */
+img.remote-blocked, img.path-refused {
+  min-width: 240px;
+  min-height: 48px;
+  background: var(--surface-card);
+  border: 1px dashed var(--notice-border);
+  border-radius: 8px;
+}
+
+.image-placeholder {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--surface-card);
+  border: 1px dashed var(--notice-border);
+  border-radius: 8px;
+  color: var(--notice-fg);
+  font-size: 0.85em;
+  padding: 12px 16px;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.image-placeholder button {
+  align-self: flex-start;
+  font: 500 12px var(--font-prose);
+  color: var(--accent);
+  background: none;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 3px 10px;
+  cursor: pointer;
+}
+.image-placeholder button:hover { background: var(--surface-hover); }
+
+/* --------------------------------------------------------------------------
+   Footnotes
+   -------------------------------------------------------------------------- */
+.footnotes {
+  margin-top: 3em;
+  padding-top: 1em;
+  border-top: 1px solid var(--rule);
+  font-size: 0.9em;
+  color: var(--fg-muted);
+}
+
+.footnotes ol { padding-left: 1.4em; }
+
+/* --------------------------------------------------------------------------
+   Front matter — collapsed metadata card at the top of the document
+   -------------------------------------------------------------------------- */
+details.front-matter {
+  background: var(--surface-card);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 2em;
+  font-size: 0.9em;
+}
+
+details.front-matter > summary {
+  cursor: pointer;
+  color: var(--fg-muted);
+  font-weight: 500;
+  user-select: none;
+}
+
+details.front-matter[open] > summary { margin-bottom: 8px; }
+
+.front-matter-table { width: 100%; min-width: 0; font-size: 1em; }
+.front-matter-table th {
+  width: 30%;
+  font-weight: 600;
+  color: var(--fg-muted);
+  border-bottom: 1px solid var(--rule);
+}
+.front-matter-table td { border-bottom: 1px solid var(--rule); overflow-wrap: anywhere; }
+.front-matter-table tr:last-child th,
+.front-matter-table tr:last-child td { border-bottom: none; }
+
+.front-matter-error { color: var(--error-fg); }
+.front-matter-raw { margin-bottom: 0; }
+
+/* --------------------------------------------------------------------------
+   Mermaid diagrams and math
+   -------------------------------------------------------------------------- */
+.mermaid-diagram { text-align: center; margin: 0 0 1em; overflow-x: auto; }
+.mermaid-diagram svg { max-width: 100%; height: auto; }
+
+.mermaid-error {
+  color: var(--error-fg);
+  font-size: 0.85em;
+  margin: -0.5em 0 1em;
+}
+
+/* KaTeX display math gets its own scroll container for very wide equations */
+.katex-display { overflow-x: auto; overflow-y: hidden; padding: 4px 0; }
+
+/* --------------------------------------------------------------------------
+   Custom containers  (::: note / ::: warning …)
+   -------------------------------------------------------------------------- */
+div.note, div.info, div.tip, div.warning, div.caution, div.important {
+  border-left: 3px solid var(--accent);
+  background: var(--surface-card);
+  border-radius: 0 8px 8px 0;
+  padding: 12px 16px;
+  margin-bottom: 1em;
+}
+div.warning, div.caution { border-left-color: var(--error-fg); }
+div.note > :last-child, div.info > :last-child, div.tip > :last-child,
+div.warning > :last-child, div.caution > :last-child, div.important > :last-child { margin-bottom: 0; }
+
+/* --------------------------------------------------------------------------
+   Find in Reader mode
+   -------------------------------------------------------------------------- */
+mark.find-hit { background: var(--find-hit-bg); color: var(--fg); padding: 0; }
+mark.find-hit.find-hit-current { background: var(--find-hit-current-bg); }
+
+/* --------------------------------------------------------------------------
+   Table of contents rail (Ctrl+Shift+O)
+   -------------------------------------------------------------------------- */
+body.toc-open main.content { margin-left: calc(max(260px, (100% - var(--content-width)) / 2)); }
+
+aside.toc {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 260px;
+  overflow-y: auto;
+  padding: 24px 8px 24px 20px;
+  border-right: 1px solid var(--rule);
+  background: var(--bg);
+  display: none;
+  font-size: 0.85em;
+}
+
+body.toc-open aside.toc { display: block; }
+
+aside.toc h2 {
+  font-size: 0.8em;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--fg-muted);
+  border: none;
+  margin: 0 0 0.75em;
+  padding: 0;
+}
+
+aside.toc ul { list-style: none; padding: 0; margin: 0; }
+aside.toc li { margin: 0; }
+aside.toc a {
+  display: block;
+  color: var(--fg-muted);
+  padding: 3px 8px;
+  border-radius: 5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+aside.toc a:hover { background: var(--surface-hover); color: var(--fg); text-decoration: none; }
+aside.toc a.active { color: var(--accent); font-weight: 600; }
+aside.toc li[data-level="2"] a { padding-left: 20px; }
+aside.toc li[data-level="3"] a { padding-left: 32px; }
+aside.toc li[data-level="4"] a,
+aside.toc li[data-level="5"] a,
+aside.toc li[data-level="6"] a { padding-left: 44px; }
+
+/* --------------------------------------------------------------------------
+   Notices (large document, refused links, …) injected by reader.js
+   -------------------------------------------------------------------------- */
+.reader-notice {
+  position: fixed;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--surface-card);
+  color: var(--notice-fg);
+  border: 1px solid var(--notice-border);
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 0.85em;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.12);
+  z-index: 10;
+}
+
+/* --------------------------------------------------------------------------
+   highlight.js token colors — mapped onto the theme palette so light/dark is
+   still a variable swap. Class set matches highlight.js 11.
+   -------------------------------------------------------------------------- */
+.hljs-comment, .hljs-quote { color: var(--hl-comment); font-style: italic; }
+.hljs-keyword, .hljs-selector-tag, .hljs-deletion { color: var(--hl-keyword); }
+.hljs-string, .hljs-regexp, .hljs-addition { color: var(--hl-string); }
+.hljs-title, .hljs-section, .hljs-name, .hljs-selector-id, .hljs-selector-class { color: var(--hl-title); }
+.hljs-literal, .hljs-number, .hljs-symbol, .hljs-bullet, .hljs-link { color: var(--hl-literal); }
+.hljs-attr, .hljs-attribute, .hljs-variable, .hljs-template-variable, .hljs-type, .hljs-built_in { color: var(--hl-attr); }
+.hljs-meta, .hljs-doctag, .hljs-strong { color: var(--hl-meta); }
+.hljs-emphasis { font-style: italic; }
+.hljs-strong { font-weight: 600; }
+
+/* ==========================================================================
+   Print / PDF export
+   ==========================================================================
+   Used by Ctrl+P and by Export → PDF (CoreWebView2.PrintToPdfAsync renders
+   with print media). Sensible page margins, no chrome, and page-break rules
+   that keep code blocks and table rows intact and headings attached to the
+   content that follows them.
+   ========================================================================== */
+@media print {
+  @page { margin: 20mm 18mm; }
+
+  :root, :root[data-theme="dark"] {
+    /* Print always uses the light palette on white paper. */
+    color-scheme: light;
+    --bg: #ffffff;
+    --fg: #1f2328;
+    --fg-muted: #57606a;
+    --surface-code: #f4f4f4;
+    --surface-card: #f4f4f4;
+    --rule: #cccccc;
+    --rule-strong: #999999;
+    --inline-code-bg: #f0f0f0;
+    --inline-code-fg: #1f2328;
+  }
+
+  body { font-size: 11pt; }
+  main.content { max-width: none; padding: 0; }
+
+  aside.toc, .reader-notice, .copy-code { display: none !important; }
+  body.toc-open main.content { margin-left: 0; }
+
+  a { color: var(--fg); text-decoration: underline; }
+
+  pre, .code-block-wrap, .mermaid-diagram, figure, img {
+    break-inside: avoid;
+    page-break-inside: avoid; /* legacy alias */
+  }
+
+  tr { break-inside: avoid; page-break-inside: avoid; }
+
+  h1, h2, h3, h4, h5, h6 {
+    break-after: avoid;
+    page-break-after: avoid;
+    break-inside: avoid;
+  }
+
+  .table-wrap { overflow: visible; }
+  table { width: 100%; }
+}

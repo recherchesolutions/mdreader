@@ -1,0 +1,11 @@
+﻿<h1 id="images-and-links" data-source-line="1">Images and links</h1>
+<p data-source-line="3">A relative image (resolves against the document directory):</p>
+<p data-source-line="5"><img src="https://mdreader-doc/docs/project/notes/images/diagram.png" alt="Local diagram" data-local-path="C:\docs\project\notes\images\diagram.png"></p>
+<p data-source-line="7">An image climbing one parent level (allowed, default limit is 3):</p>
+<p data-source-line="9"><img src="https://mdreader-doc/docs/project/shared/logo.png" alt="Sibling folder" data-local-path="C:\docs\project\shared\logo.png"></p>
+<p data-source-line="11">An image escaping too far (must be refused):</p>
+<p data-source-line="13"><img alt="Escape attempt" data-refused-src="../../../../../../etc/passwd.png" class="path-refused"></p>
+<p data-source-line="15">A remote image (blocked by default, placeholder shown):</p>
+<p data-source-line="17"><img alt="Tracking pixel" data-remote-src="https://example.com/pixel.png" class="remote-blocked"></p>
+<p data-source-line="19">Links: <a href="docs/readme.md">relative</a>, <a href="https://example.com">absolute</a>,
+<a href="mailto:test@example.com">mail</a>, <a href="#images-and-links">anchor</a>.</p>

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<!--
+  Identical to reader.html except img-src additionally allows http: and https:.
+  The host navigates here only after the user chose "Load remote images" for
+  this document (or enabled the global setting). Keep the two files in sync.
+-->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' https://mdreader-doc file: data: http: https:; font-src 'self'; connect-src 'none'">
+<title>mdreader</title>
+<link rel="stylesheet" href="/css/reader.css">
+<link rel="stylesheet" href="/vendor/katex/katex.min.css">
+</head>
+<body>
+<aside class="toc" id="toc" aria-label="Table of contents"></aside>
+<main class="content" id="content"></main>
+<script src="/vendor/highlight/highlight.min.js"></script>
+<script src="/vendor/mermaid/mermaid.min.js"></script>
+<script src="/vendor/katex/katex.min.js"></script>
+<script src="/js/reader.js"></script>
+</body>
+</html>
