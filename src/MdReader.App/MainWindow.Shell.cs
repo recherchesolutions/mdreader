@@ -35,11 +35,16 @@ public partial class MainWindow
 
     /// <summary>
     /// First run only (§4.3): show the non-modal bar when .md is not already
-    /// pointing at us and the user hasn't dismissed it permanently.
+    /// pointing at us and the user hasn't dismissed it permanently. "Pointing
+    /// at us" is checked two ways — the recorded UserChoice ProgId (either of
+    /// the forms Windows writes) and the shell's effective handler executable —
+    /// so the bar never nags a user whose default is already mdreader.
     /// </summary>
     private void MaybeShowDefaultAppBar()
     {
-        if (_settings.DontAskDefaultApp || _registrar.IsDefaultFor(".md"))
+        if (_settings.DontAskDefaultApp ||
+            _registrar.IsDefaultFor(".md") ||
+            AssociationQuery.OpensWith(".md", ExePath))
         {
             return;
         }
@@ -88,7 +93,13 @@ public partial class MainWindow
         var result = new Dictionary<string, string>();
         foreach (var extension in FileTypes.DefaultExtensions.Concat(FileTypes.OptionalExtensions))
         {
-            result[extension] = _registrar.GetUserChoiceProgId(extension) ?? "(no user choice)";
+            // The effective handler (what actually opens on double-click) is
+            // what users care about; the recorded ProgId is shown as detail.
+            var exe = AssociationQuery.GetEffectiveHandlerExecutable(extension);
+            var progId = _registrar.GetUserChoiceProgId(extension);
+            result[extension] = exe is null
+                ? "(no handler)"
+                : Path.GetFileName(exe) + (progId is null ? "" : $"  [{progId}]");
         }
 
         return result;

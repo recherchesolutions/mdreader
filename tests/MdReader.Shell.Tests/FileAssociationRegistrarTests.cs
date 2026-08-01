@@ -210,6 +210,22 @@ public sealed class FileAssociationRegistrarTests : IDisposable
         registrar.IsDefaultFor(".md").Should().BeTrue();
     }
 
+    [Fact]
+    public void IsDefaultFor_recognizes_applications_progid_form()
+    {
+        // Picking mdreader in the Open With dialog makes Windows record the
+        // choice as Applications\mdreader.exe rather than our ProgId. Both
+        // forms mean "mdreader is the default" — treating only one as ours
+        // made the first-run bar nag users who had already said yes.
+        using (var userChoice = _sandbox.CreateSubKey(
+            @"Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.md\UserChoice"))
+        {
+            userChoice.SetValue("ProgId", @"Applications\mdreader.exe");
+        }
+
+        new FileAssociationRegistrar(_sandbox).IsDefaultFor(".md").Should().BeTrue();
+    }
+
     private static IEnumerable<string> EnumerateAllKeys(RegistryKey root, string prefix = "")
     {
         foreach (var name in root.GetSubKeyNames())

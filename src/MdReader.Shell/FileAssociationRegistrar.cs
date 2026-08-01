@@ -154,7 +154,16 @@ public sealed class FileAssociationRegistrar
         return key?.GetValue("ProgId") as string;
     }
 
-    /// <summary>True when mdreader is the user-chosen default for the extension.</summary>
-    public bool IsDefaultFor(string extension) =>
-        string.Equals(GetUserChoiceProgId(extension), ProgId, StringComparison.OrdinalIgnoreCase);
+    /// <summary>
+    /// True when mdreader is the user-chosen default for the extension.
+    /// Windows records the choice as our ProgId when the user picks the file
+    /// type entry, but as "Applications\mdreader.exe" when they pick the app
+    /// from the Open With list — both mean "mdreader is the default".
+    /// </summary>
+    public bool IsDefaultFor(string extension)
+    {
+        var userChoice = GetUserChoiceProgId(extension);
+        return string.Equals(userChoice, ProgId, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(userChoice, @"Applications\mdreader.exe", StringComparison.OrdinalIgnoreCase);
+    }
 }
