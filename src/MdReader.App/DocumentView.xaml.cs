@@ -390,8 +390,29 @@ public partial class DocumentView : UserControl
         {
             case "ready":
                 _editorReady = true;
+                DiagLog.Write("editor ready");
                 PostEditorPending();
                 PostEditor(new { type = "setTheme", theme = EffectiveTheme() });
+
+                if (Environment.GetEnvironmentVariable("MDREADER_SHOT_EDITOR") is { } editorShot)
+                {
+                    _ = Dispatcher.InvokeAsync(async () =>
+                    {
+                        await Task.Delay(2500);
+                        try
+                        {
+                            await using var stream = File.Create(editorShot);
+                            await EditorView.CoreWebView2.CapturePreviewAsync(
+                                CoreWebView2CapturePreviewImageFormat.Png, stream);
+                            DiagLog.Write($"editor capture written: {editorShot}");
+                        }
+                        catch (Exception ex)
+                        {
+                            DiagLog.Write($"editor capture failed: {ex.Message}");
+                        }
+                    });
+                }
+
                 break;
 
             case "contentChanged":
