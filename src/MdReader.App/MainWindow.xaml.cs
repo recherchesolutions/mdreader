@@ -550,10 +550,7 @@ public partial class MainWindow : Window
 
     private void OnAboutClick(object sender, RoutedEventArgs e)
     {
-        var version = typeof(MainWindow).Assembly.GetName().Version?.ToString(3) ?? "dev";
-        MessageBox.Show(this,
-            $"mdreader {version}\n\nA fast, beautiful markdown reader for Windows.\nMIT licensed, free and open source.\n\nNo telemetry. Ever.",
-            "About mdreader", MessageBoxButton.OK, MessageBoxImage.Information);
+        new AboutWindow { Owner = this }.ShowDialog();
     }
 
     // Implemented in MainWindow.Export.cs (Phase 5) and MainWindow.Shell.cs (Phase 4).

@@ -4,6 +4,17 @@ All notable changes to mdreader are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-08-01
+
+### Added
+
+- About dialog with version, license note, and a link to Recherche Solutions LLC.
+
+### Fixed
+
+- Settings window: content no longer clips at the bottom (scrollable and
+  resizable now).
+
 ## [0.2.0] - 2026-08-01
 
 ### Added
@@ -43,5 +54,6 @@ All notable changes to mdreader are documented here. The format follows
 - Inno Setup installer (per-user, silent-install capable), portable ZIP,
   winget workflow.
 
+[0.3.0]: https://github.com/mdreader/mdreader/commits/main
 [0.2.0]: https://github.com/mdreader/mdreader/commits/main
 [0.1.0]: https://github.com/mdreader/mdreader/commits/main

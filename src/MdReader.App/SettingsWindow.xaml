@@ -1,8 +1,9 @@
 <Window x:Class="MdReader.App.SettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Settings — mdreader" Width="560" Height="620"
-        WindowStartupLocation="CenterOwner" ResizeMode="NoResize" ShowInTaskbar="False">
+        Title="Settings — mdreader" Width="560" Height="680"
+        MinWidth="480" MinHeight="420"
+        WindowStartupLocation="CenterOwner" ResizeMode="CanResize" ShowInTaskbar="False">
     <DockPanel Margin="0">
         <Border DockPanel.Dock="Bottom" BorderBrush="#30808080" BorderThickness="0,1,0,0" Padding="12,10">
             <DockPanel LastChildFill="False">
@@ -15,6 +16,7 @@
 
         <TabControl Margin="10">
             <TabItem Header="General">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
                 <StackPanel Margin="14">
                     <TextBlock FontWeight="SemiBold" Margin="0,0,0,6">Opening documents</TextBlock>
                     <DockPanel Margin="0,2">
@@ -61,9 +63,11 @@
                     <CheckBox x:Name="RemoteImagesBox">Load remote images in all documents (tracking risk)</CheckBox>
                     <CheckBox x:Name="UpdateCheckBox" Margin="0,6,0,0">Check GitHub for new releases at startup (opt-in)</CheckBox>
                 </StackPanel>
+                </ScrollViewer>
             </TabItem>
 
             <TabItem Header="File associations">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
                 <StackPanel Margin="14">
                     <TextBlock FontWeight="SemiBold" Margin="0,0,0,6">Registered extensions</TextBlock>
                     <TextBlock Opacity="0.7" TextWrapping="Wrap" Margin="0,0,0,8">
@@ -83,6 +87,7 @@
                         This opens the standard Windows dialog — the choice is always yours to make there.
                     </TextBlock>
                 </StackPanel>
+                </ScrollViewer>
             </TabItem>
         </TabControl>
     </DockPanel>
