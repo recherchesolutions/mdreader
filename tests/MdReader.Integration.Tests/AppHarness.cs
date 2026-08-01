@@ -12,7 +12,13 @@ public sealed class AppHarness : IDisposable
     public Process Process { get; }
     public string LogPath { get; }
 
-    public AppHarness(string arguments)
+    /// <param name="arguments">Command line for mdreader.exe.</param>
+    /// <param name="instanceId">
+    /// Isolates the single-instance mutex/pipe. Harnesses with different ids
+    /// never hand off to each other (or to the user's real instance); pass the
+    /// same id to two harnesses to exercise the handoff itself.
+    /// </param>
+    public AppHarness(string arguments, string? instanceId = null)
     {
         LogPath = Path.Combine(Path.GetTempPath(), $"mdreader-test-{Guid.NewGuid():N}.log");
 
@@ -21,6 +27,7 @@ public sealed class AppHarness : IDisposable
             UseShellExecute = false,
         };
         psi.Environment["MDREADER_LOG"] = LogPath;
+        psi.Environment["MDREADER_INSTANCE_ID"] = instanceId ?? Guid.NewGuid().ToString("N");
 
         Process = Process.Start(psi) ?? throw new InvalidOperationException("failed to start mdreader");
     }
