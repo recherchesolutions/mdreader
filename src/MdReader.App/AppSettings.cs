@@ -40,6 +40,13 @@ public sealed class AppSettings
     public string? FontFamilyOverride { get; set; }
     public int? FontSizeOverride { get; set; }
 
+    /// <summary>
+    /// Reader content column width in px. Null = 720px (~72–78 characters, the
+    /// classic reading measure). Defaults to full width (a huge max-width) —
+    /// the content column follows the window; narrower measures are opt-in.
+    /// </summary>
+    public int? ContentWidthOverride { get; set; } = 10000;
+
     /// <summary>Zoom factor, persisted per app, not per file.</summary>
     public double Zoom { get; set; } = 1.0;
 

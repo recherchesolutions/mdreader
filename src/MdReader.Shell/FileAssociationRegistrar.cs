@@ -31,9 +31,21 @@ public sealed class FileAssociationRegistrar
         _root = root ?? Registry.CurrentUser;
     }
 
+    /// <summary>
+    /// The DefaultIcon value: the document icon shipped beside the exe, or the
+    /// exe's own icon (index 0) when the file is missing.
+    /// </summary>
+    internal static string DocumentIconValue(string exePath)
+    {
+        var iconPath = Path.Combine(Path.GetDirectoryName(exePath) ?? string.Empty, "mdreader-doc.ico");
+        return File.Exists(iconPath) ? $"\"{iconPath}\"" : $"\"{exePath}\",0";
+    }
+
     /// <summary>Registers the ProgId, capability declarations, and OpenWithProgids entries.</summary>
     public void Register(string exePath, IReadOnlyCollection<string> extensions)
     {
+        var documentIcon = DocumentIconValue(exePath);
+
         // ProgId with shell verbs: open (reader) and edit (source mode).
         using (var progId = _root.CreateSubKey($@"Software\Classes\{ProgId}"))
         {
@@ -41,7 +53,7 @@ public sealed class FileAssociationRegistrar
             progId.SetValue("FriendlyTypeName", "Markdown Document");
 
             using var icon = progId.CreateSubKey("DefaultIcon");
-            icon.SetValue(null, $"\"{exePath}\",1");
+            icon.SetValue(null, documentIcon);
 
             using var open = progId.CreateSubKey(@"shell\open\command");
             open.SetValue(null, $"\"{exePath}\" \"%1\"");
@@ -50,10 +62,17 @@ public sealed class FileAssociationRegistrar
             edit.SetValue(null, $"\"{exePath}\" --source \"%1\"");
         }
 
-        // Applications entry so mdreader appears in "Open with".
+        // Applications entry so mdreader appears in "Open with". It gets its own
+        // DefaultIcon because Windows records an Open With choice as
+        // "Applications\mdreader.exe" — without an icon here, Explorer shows a
+        // blank document icon for associated files.
         using (var application = _root.CreateSubKey(@"Software\Classes\Applications\mdreader.exe"))
         {
             application.SetValue("FriendlyAppName", "mdreader");
+
+            using var appIcon = application.CreateSubKey("DefaultIcon");
+            appIcon.SetValue(null, documentIcon);
+
             using var shellOpen = application.CreateSubKey(@"shell\open\command");
             shellOpen.SetValue(null, $"\"{exePath}\" \"%1\"");
 

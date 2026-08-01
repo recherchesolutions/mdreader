@@ -7,4 +7,8 @@
     <Description>File association registration, ProgId management, and shell notification for mdreader.</Description>
   </PropertyGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="MdReader.Shell.Tests" />
+  </ItemGroup>
+
 </Project>

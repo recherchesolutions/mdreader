@@ -18,6 +18,14 @@
     <ProjectReference Include="..\MdReader.Shell\MdReader.Shell.csproj" />
   </ItemGroup>
 
+  <!-- Document icon for the .md file association, shipped beside the exe so
+       DefaultIcon registry values can reference it directly. -->
+  <ItemGroup>
+    <None Include="Assets\mdreader-doc.ico">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
   <!-- Bundle all web assets (reader.html, editor.html, css, js, vendor libs) beside the exe. -->
   <ItemGroup>
     <None Include="..\MdReader.Web\**\*" Exclude="..\MdReader.Web\**\node_modules\**">

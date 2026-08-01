@@ -19,10 +19,19 @@ public static class WebViewFactory
     /// <summary>Kick off environment creation early; called once at startup.</summary>
     public static Task<CoreWebView2Environment> WarmEnvironmentAsync()
     {
+        var options = new CoreWebView2EnvironmentOptions();
+        // Diagnostics escape hatch: MDREADER_BROWSER_ARGS passes extra Chromium
+        // flags (e.g. --disable-gpu on GPU-less VMs where GPU probing costs
+        // seconds at startup).
+        if (Environment.GetEnvironmentVariable("MDREADER_BROWSER_ARGS") is { Length: > 0 } extraArgs)
+        {
+            options.AdditionalBrowserArguments = extraArgs;
+        }
+
         return _environmentTask ??= CoreWebView2Environment.CreateAsync(
             browserExecutableFolder: null,
             userDataFolder: Path.Combine(AppSettings.SettingsDirectory, "webview2"),
-            options: new CoreWebView2EnvironmentOptions());
+            options: options);
     }
 
     /// <summary>

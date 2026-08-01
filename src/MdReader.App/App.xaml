@@ -3,5 +3,76 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              ShutdownMode="OnMainWindowClose">
     <Application.Resources>
+
+        <!-- Modern tab strip: rounded tops, soft hover, breathing room under
+             the menu bar, active tab lifted with an accent underline. -->
+        <SolidColorBrush x:Key="TabStripBackground" Color="#F3F4F6"/>
+        <SolidColorBrush x:Key="TabInactiveBackground" Color="Transparent"/>
+        <SolidColorBrush x:Key="TabHoverBackground" Color="#E4E7EB"/>
+        <SolidColorBrush x:Key="TabActiveBackground" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="TabAccent" Color="#0A5DC2"/>
+        <SolidColorBrush x:Key="TabText" Color="#454B54"/>
+        <SolidColorBrush x:Key="TabActiveText" Color="#1F2328"/>
+
+        <Style TargetType="TabControl">
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabControl">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <Border Grid.Row="0" Background="{StaticResource TabStripBackground}"
+                                    Padding="8,6,8,0">
+                                <TabPanel IsItemsHost="True" Background="Transparent"/>
+                            </Border>
+                            <Border Grid.Row="1" Background="{TemplateBinding Background}">
+                                <ContentPresenter ContentSource="SelectedContent"/>
+                            </Border>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="TabItem">
+            <Setter Property="Foreground" Value="{StaticResource TabText}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabItem">
+                        <Grid Margin="0,0,4,0">
+                            <Border x:Name="Bd"
+                                    CornerRadius="8,8,0,0"
+                                    Background="{StaticResource TabInactiveBackground}"
+                                    Padding="16,8,16,9">
+                                <ContentPresenter x:Name="Content" ContentSource="Header"
+                                                  VerticalAlignment="Center"
+                                                  TextBlock.FontSize="12.5"/>
+                            </Border>
+                            <!-- Accent underline, visible on the active tab only -->
+                            <Rectangle x:Name="Accent" Height="0" VerticalAlignment="Bottom"
+                                       RadiusX="1.5" RadiusY="1.5" Margin="12,0,12,0"
+                                       Fill="{StaticResource TabAccent}"/>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource TabHoverBackground}"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource TabActiveBackground}"/>
+                                <Setter TargetName="Accent" Property="Height" Value="3"/>
+                                <Setter Property="Foreground" Value="{StaticResource TabActiveText}"/>
+                                <Setter Property="Panel.ZIndex" Value="1"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
     </Application.Resources>
 </Application>

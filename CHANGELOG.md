@@ -4,7 +4,20 @@ All notable changes to mdreader are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.2.0] - 2026-08-01
+
+### Added
+
+- Content width setting: Default (720 px reading measure), Wide, Extra wide,
+  or Full width — applies to the reader and to HTML/clipboard export.
+
+### Fixed
+
+- The "Make mdreader the default app" bar no longer reappears after the user
+  has already set mdreader as the default (Windows records the Open With
+  choice as `Applications\mdreader.exe`, which was not recognized).
+
+## [0.1.0] - 2026-08-01
 
 ### Added
 
@@ -30,4 +43,5 @@ All notable changes to mdreader are documented here. The format follows
 - Inno Setup installer (per-user, silent-install capable), portable ZIP,
   winget workflow.
 
-[Unreleased]: https://github.com/mdreader/mdreader/commits/main
+[0.2.0]: https://github.com/mdreader/mdreader/commits/main
+[0.1.0]: https://github.com/mdreader/mdreader/commits/main

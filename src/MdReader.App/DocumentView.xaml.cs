@@ -409,10 +409,13 @@ public partial class DocumentView : UserControl
 
     private void PostFontOverrides()
     {
-        if (_settings.FontFamilyOverride is not null || _settings.FontSizeOverride is not null)
+        PostReader(new
         {
-            PostReader(new { type = "setFont", family = _settings.FontFamilyOverride, size = _settings.FontSizeOverride });
-        }
+            type = "setFont",
+            family = _settings.FontFamilyOverride,
+            size = _settings.FontSizeOverride,
+            contentWidth = _settings.ContentWidthOverride,
+        });
     }
 
     /* ------------------------------------------------------------------ *
@@ -920,8 +923,19 @@ public partial class DocumentView : UserControl
     /// <summary>The current buffer text (markdown source).</summary>
     public string CurrentText => _currentText;
 
-    public string? CustomThemeCss =>
-        _settings.CustomTheme is { } name ? ThemeLoader.ReadCustomTheme(name) : null;
+    public string? CustomThemeCss
+    {
+        get
+        {
+            var css = _settings.CustomTheme is { } name ? ThemeLoader.ReadCustomTheme(name) : null;
+            if (_settings.ContentWidthOverride is { } width)
+            {
+                css = (css ?? string.Empty) + $"\n:root {{ --content-width: {width}px; }}\n";
+            }
+
+            return css;
+        }
+    }
 
     public Task ExportPdfAsync(string outputPath) =>
         ReaderView.CoreWebView2.PrintToPdfAsync(outputPath, null);

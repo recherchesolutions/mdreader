@@ -15,7 +15,7 @@
 ; ============================================================================
 
 #ifndef AppVersion
-  #define AppVersion "0.1.0"
+  #define AppVersion "0.2.0"
 #endif
 #ifndef PublishDir
   #define PublishDir "..\..\publish\app"
@@ -70,12 +70,15 @@ Name: "{autodesktop}\mdreader"; Filename: "{app}\mdreader.exe"; Tasks: desktopic
 ; ---- ProgId (HKA = HKCU for per-user installs, HKLM for per-machine) --------
 Root: HKA; Subkey: "Software\Classes\MdReader.Markdown.1"; ValueType: string; ValueData: "Markdown Document"; Flags: uninsdeletekey
 Root: HKA; Subkey: "Software\Classes\MdReader.Markdown.1"; ValueType: string; ValueName: "FriendlyTypeName"; ValueData: "Markdown Document"
-Root: HKA; Subkey: "Software\Classes\MdReader.Markdown.1\DefaultIcon"; ValueType: string; ValueData: """{app}\mdreader.exe"",1"
+Root: HKA; Subkey: "Software\Classes\MdReader.Markdown.1\DefaultIcon"; ValueType: string; ValueData: """{app}\mdreader-doc.ico"""
 Root: HKA; Subkey: "Software\Classes\MdReader.Markdown.1\shell\open\command"; ValueType: string; ValueData: """{app}\mdreader.exe"" ""%1"""
 Root: HKA; Subkey: "Software\Classes\MdReader.Markdown.1\shell\edit\command"; ValueType: string; ValueData: """{app}\mdreader.exe"" --source ""%1"""
 
 ; ---- Applications entry ------------------------------------------------------
 Root: HKA; Subkey: "Software\Classes\Applications\mdreader.exe"; ValueType: string; ValueName: "FriendlyAppName"; ValueData: "mdreader"; Flags: uninsdeletekey
+; Windows records an Open With choice as Applications\mdreader.exe, so this key
+; needs its own DefaultIcon or associated files show a blank icon.
+Root: HKA; Subkey: "Software\Classes\Applications\mdreader.exe\DefaultIcon"; ValueType: string; ValueData: """{app}\mdreader-doc.ico"""
 Root: HKA; Subkey: "Software\Classes\Applications\mdreader.exe\shell\open\command"; ValueType: string; ValueData: """{app}\mdreader.exe"" ""%1"""
 Root: HKA; Subkey: "Software\Classes\Applications\mdreader.exe\SupportedTypes"; ValueType: string; ValueName: ".md"; ValueData: ""
 Root: HKA; Subkey: "Software\Classes\Applications\mdreader.exe\SupportedTypes"; ValueType: string; ValueName: ".markdown"; ValueData: ""

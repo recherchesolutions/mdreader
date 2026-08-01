@@ -9,6 +9,16 @@ public partial class SettingsWindow : Window
     private readonly AppSettings _settings;
     private readonly List<CheckBox> _extensionBoxes = [];
 
+    // "Full width" (the default) uses a huge max-width so the CSS calc() for
+    // the TOC rail stays valid (an actual `none` would break it).
+    private static readonly Dictionary<string, int?> ContentWidthChoices = new()
+    {
+        ["Full width (default)"] = 10000,
+        ["Extra wide (1200 px)"] = 1200,
+        ["Wide (960 px)"] = 960,
+        ["Reading measure (720 px)"] = null,
+    };
+
     /// <summary>Set when the user clicked "Set as default" — handled by the owner window.</summary>
     public bool SetDefaultAppRequested { get; private set; }
 
@@ -29,6 +39,10 @@ public partial class SettingsWindow : Window
         CustomThemeBox.SelectedItem = settings.CustomTheme is { } custom && customThemes.Contains(custom)
             ? custom
             : "(none)";
+
+        ContentWidthBox.ItemsSource = ContentWidthChoices.Keys;
+        ContentWidthBox.SelectedItem = ContentWidthChoices
+            .FirstOrDefault(kv => kv.Value == settings.ContentWidthOverride, ContentWidthChoices.First()).Key;
 
         FontFamilyBox.Text = settings.FontFamilyOverride ?? string.Empty;
         FontSizeBox.Text = settings.FontSizeOverride?.ToString() ?? string.Empty;
@@ -65,6 +79,7 @@ public partial class SettingsWindow : Window
         _settings.CustomTheme = CustomThemeBox.SelectedItem as string is "(none)" or null
             ? null
             : (string)CustomThemeBox.SelectedItem;
+        _settings.ContentWidthOverride = ContentWidthChoices[(string)ContentWidthBox.SelectedItem];
         _settings.FontFamilyOverride = string.IsNullOrWhiteSpace(FontFamilyBox.Text) ? null : FontFamilyBox.Text.Trim();
         _settings.FontSizeOverride = int.TryParse(FontSizeBox.Text, out var size) && size is >= 8 and <= 40 ? size : null;
         _settings.LineEndingPolicy = (LineEndingPolicy)LineEndingBox.SelectedItem;

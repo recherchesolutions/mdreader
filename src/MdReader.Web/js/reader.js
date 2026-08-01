@@ -535,6 +535,8 @@
     else { root.style.removeProperty("--font-prose"); }
     if (msg.size) { root.style.setProperty("--font-size", msg.size + "px"); }
     else { root.style.removeProperty("--font-size"); }
+    if (msg.contentWidth) { root.style.setProperty("--content-width", msg.contentWidth + "px"); }
+    else { root.style.removeProperty("--content-width"); }
   }
 
   /* ------------------------------------------------------------------ *

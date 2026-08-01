@@ -66,6 +66,7 @@ public sealed class FileAssociationRegistrarTests : IDisposable
             @"Software\Classes\MdReader.Markdown.1\shell\edit\command",
             @"Software\Classes\Applications",
             @"Software\Classes\Applications\mdreader.exe",
+            @"Software\Classes\Applications\mdreader.exe\DefaultIcon",
             @"Software\Classes\Applications\mdreader.exe\shell",
             @"Software\Classes\Applications\mdreader.exe\shell\open",
             @"Software\Classes\Applications\mdreader.exe\shell\open\command",
@@ -97,6 +98,15 @@ public sealed class FileAssociationRegistrarTests : IDisposable
 
         using var edit = _sandbox.OpenSubKey(@"Software\Classes\MdReader.Markdown.1\shell\edit\command");
         edit!.GetValue(null).Should().Be($"\"{ExePath}\" --source \"%1\"");
+
+        // Both icon locations must be set: the ProgId AND Applications\mdreader.exe
+        // (Windows records Open With choices as the latter; without an icon
+        // there, .md files show a blank document icon).
+        var expectedIcon = FileAssociationRegistrar.DocumentIconValue(ExePath);
+        using var progIdIcon = _sandbox.OpenSubKey(@"Software\Classes\MdReader.Markdown.1\DefaultIcon");
+        progIdIcon!.GetValue(null).Should().Be(expectedIcon);
+        using var appIcon = _sandbox.OpenSubKey(@"Software\Classes\Applications\mdreader.exe\DefaultIcon");
+        appIcon!.GetValue(null).Should().Be(expectedIcon);
 
         using var openWith = _sandbox.OpenSubKey(@"Software\Classes\.md\OpenWithProgids");
         openWith!.GetValueNames().Should().Contain("MdReader.Markdown.1");

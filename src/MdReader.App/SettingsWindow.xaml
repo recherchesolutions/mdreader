@@ -36,6 +36,13 @@
                         Drop .css files into %APPDATA%\mdreader\themes\ and they appear here.
                     </TextBlock>
                     <DockPanel Margin="0,8,0,2">
+                        <TextBlock Width="170" VerticalAlignment="Center">Content width</TextBlock>
+                        <ComboBox x:Name="ContentWidthBox" Width="180" HorizontalAlignment="Left"/>
+                    </DockPanel>
+                    <TextBlock Margin="170,2,0,0" Opacity="0.6" FontSize="11" TextWrapping="Wrap">
+                        Full width follows the window; 720 px is the classic ~75-character reading measure.
+                    </TextBlock>
+                    <DockPanel Margin="0,8,0,2">
                         <TextBlock Width="170" VerticalAlignment="Center">Font family override</TextBlock>
                         <TextBox x:Name="FontFamilyBox" Width="180" HorizontalAlignment="Left"/>
                     </DockPanel>
