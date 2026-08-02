@@ -55,6 +55,9 @@ jobs:
             ${{ runner.temp }}/**/mdreader-test-*.log
           if-no-files-found: ignore
 
+      - name: Performance budgets (deterministic render pipeline)
+        run: dotnet run --project benchmarks/MdReader.Benchmarks -c Release -- --check
+
       - name: Upload coverage
         uses: actions/upload-artifact@v4
         with:
