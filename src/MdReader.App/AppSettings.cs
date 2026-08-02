@@ -25,6 +25,15 @@ public enum LineEndingPolicy
     Lf,
 }
 
+public enum ExportPreset
+{
+    Document,
+    TechnicalReport,
+    Compact,
+}
+
+public sealed record SessionTabState(string FilePath, ViewMode Mode);
+
 /// <summary>
 /// Application settings, persisted to %APPDATA%\mdreader\settings.json.
 /// Telemetry: none. Ever. There is deliberately no field for it.
@@ -39,6 +48,8 @@ public sealed class AppSettings
 
     public string? FontFamilyOverride { get; set; }
     public int? FontSizeOverride { get; set; }
+    public double LineSpacing { get; set; } = 1.65;
+    public double ParagraphSpacingEm { get; set; } = 1.0;
 
     /// <summary>
     /// Reader content column width in px. Null = 720px (~72–78 characters, the
@@ -65,6 +76,13 @@ public sealed class AppSettings
     public bool CheckForUpdates { get; set; }
 
     public List<string> RecentFiles { get; set; } = [];
+    public List<string> PinnedFiles { get; set; } = [];
+    public bool RestorePreviousSession { get; set; }
+    public string AssetDirectoryName { get; set; } = "assets";
+    public ExportPreset ExportPreset { get; set; } = ExportPreset.Document;
+    public List<SessionTabState> SessionTabs { get; set; } = [];
+    public string? ActiveSessionFile { get; set; }
+    public bool HasSeenWelcomeDocument { get; set; }
 
     // Window placement (null = let Windows choose on first run)
     public double? WindowLeft { get; set; }
@@ -74,6 +92,8 @@ public sealed class AppSettings
     public bool WindowMaximized { get; set; }
 
     public const int MaxRecentFiles = 20;
+    public const int MaxPinnedFiles = 20;
+    public const int MaxSessionTabs = 50;
 
     [JsonIgnore]
     public static string SettingsDirectory =>

@@ -33,4 +33,7 @@ public sealed record RenderOptions
     /// (parent-traversal limits, remote blocking) still apply.
     /// </summary>
     public bool KeepRelativeImagePaths { get; init; }
+
+    /// <summary>Optional phase timing callback used by benchmarks and diagnostics.</summary>
+    public Action<string, TimeSpan>? TimingSink { get; init; }
 }

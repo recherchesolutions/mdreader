@@ -15,16 +15,23 @@ namespace MdReader.App.Services;
 public static partial class ExportService
 {
     /// <summary>Assembles the standalone document from rendered body HTML.</summary>
-    public static string BuildSelfContainedHtml(string renderedBodyHtml, string theme, bool embedImages, string? title, string? customThemeCss)
+    public static string BuildSelfContainedHtml(string renderedBodyHtml, string theme, bool embedImages, string? title, string? customThemeCss, ExportPreset preset = ExportPreset.Document)
     {
         var body = CleanBody(renderedBodyHtml, embedImages);
-        var css = BuildInlineCss(customThemeCss);
+        var css = BuildInlineCss(customThemeCss) + PresetCss(preset);
         return HtmlDocumentAssembler.BuildStandalone(
             new RenderResult { BodyHtml = body, Headings = [] },
             css,
             title,
             theme);
     }
+
+    private static string PresetCss(ExportPreset preset) => preset switch
+    {
+        ExportPreset.TechnicalReport => "\n:root { --content-width: 960px; } pre { white-space: pre-wrap; overflow-wrap: anywhere; }\n",
+        ExportPreset.Compact => "\n:root { --content-width: 10000px; --font-size: 14px; --line-height: 1.4; --paragraph-spacing: .65em; } main.content { padding: 24px; }\n",
+        _ => string.Empty,
+    };
 
     /// <summary>reader.css + KaTeX CSS with fonts embedded + any custom theme.</summary>
     public static string BuildInlineCss(string? customThemeCss)

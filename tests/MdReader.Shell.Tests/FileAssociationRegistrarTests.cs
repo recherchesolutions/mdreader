@@ -75,6 +75,19 @@ public sealed class FileAssociationRegistrarTests : IDisposable
             @"Software\Classes\.md\OpenWithProgids",
             @"Software\Classes\.markdown",
             @"Software\Classes\.markdown\OpenWithProgids",
+            @"Software\Classes\SystemFileAssociations",
+            @"Software\Classes\SystemFileAssociations\.md",
+            @"Software\Classes\SystemFileAssociations\.md\shell",
+            @"Software\Classes\SystemFileAssociations\.md\shell\mdreader.open",
+            @"Software\Classes\SystemFileAssociations\.md\shell\mdreader.open\command",
+            @"Software\Classes\SystemFileAssociations\.md\shell\mdreader.exportPdf",
+            @"Software\Classes\SystemFileAssociations\.md\shell\mdreader.exportPdf\command",
+            @"Software\Classes\SystemFileAssociations\.markdown",
+            @"Software\Classes\SystemFileAssociations\.markdown\shell",
+            @"Software\Classes\SystemFileAssociations\.markdown\shell\mdreader.open",
+            @"Software\Classes\SystemFileAssociations\.markdown\shell\mdreader.open\command",
+            @"Software\Classes\SystemFileAssociations\.markdown\shell\mdreader.exportPdf",
+            @"Software\Classes\SystemFileAssociations\.markdown\shell\mdreader.exportPdf\command",
             @"Software\mdreader",
             @"Software\mdreader\Capabilities",
             @"Software\mdreader\Capabilities\FileAssociations",
@@ -110,6 +123,14 @@ public sealed class FileAssociationRegistrarTests : IDisposable
 
         using var openWith = _sandbox.OpenSubKey(@"Software\Classes\.md\OpenWithProgids");
         openWith!.GetValueNames().Should().Contain("MdReader.Markdown.1");
+
+        using var explorerOpen = _sandbox.OpenSubKey(
+            @"Software\Classes\SystemFileAssociations\.md\shell\mdreader.open\command");
+        explorerOpen!.GetValue(null).Should().Be($"\"{ExePath}\" \"%1\"");
+
+        using var explorerPdf = _sandbox.OpenSubKey(
+            @"Software\Classes\SystemFileAssociations\.md\shell\mdreader.exportPdf\command");
+        explorerPdf!.GetValue(null).Should().Be($"\"{ExePath}\" \"%1\" --export-pdf-prompt");
 
         // ADDITIVE: the extension's (Default) value must not be set by us.
         using var mdKey = _sandbox.OpenSubKey(@"Software\Classes\.md");
@@ -167,6 +188,8 @@ public sealed class FileAssociationRegistrarTests : IDisposable
         _sandbox.OpenSubKey(@"Software\Classes\MdReader.Markdown.1").Should().BeNull();
         _sandbox.OpenSubKey(@"Software\Classes\Applications\mdreader.exe").Should().BeNull();
         _sandbox.OpenSubKey(@"Software\mdreader").Should().BeNull();
+        _sandbox.OpenSubKey(@"Software\Classes\SystemFileAssociations\.md\shell\mdreader.open").Should().BeNull();
+        _sandbox.OpenSubKey(@"Software\Classes\SystemFileAssociations\.md\shell\mdreader.exportPdf").Should().BeNull();
 
         using var registered = _sandbox.OpenSubKey(@"Software\RegisteredApplications");
         registered!.GetValue("mdreader").Should().BeNull();

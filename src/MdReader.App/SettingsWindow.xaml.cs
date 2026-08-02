@@ -1,3 +1,4 @@
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using MdReader.Core;
@@ -46,11 +47,19 @@ public partial class SettingsWindow : Window
 
         FontFamilyBox.Text = settings.FontFamilyOverride ?? string.Empty;
         FontSizeBox.Text = settings.FontSizeOverride?.ToString() ?? string.Empty;
+        LineSpacingBox.ItemsSource = new[] { 1.4, 1.5, 1.65, 1.8, 2.0 };
+        LineSpacingBox.SelectedItem = settings.LineSpacing;
+        ParagraphSpacingBox.ItemsSource = new[] { 0.5, 0.75, 1.0, 1.25, 1.5 };
+        ParagraphSpacingBox.SelectedItem = settings.ParagraphSpacingEm;
 
         LineEndingBox.ItemsSource = Enum.GetValues<LineEndingPolicy>();
         LineEndingBox.SelectedItem = settings.LineEndingPolicy;
+        AssetDirectoryBox.Text = settings.AssetDirectoryName;
+        ExportPresetBox.ItemsSource = Enum.GetValues<ExportPreset>();
+        ExportPresetBox.SelectedItem = settings.ExportPreset;
 
         SplitDefaultBox.IsChecked = settings.SplitViewByDefault;
+        RestoreSessionBox.IsChecked = settings.RestorePreviousSession;
         RemoteImagesBox.IsChecked = settings.LoadRemoteImages;
         UpdateCheckBox.IsChecked = settings.CheckForUpdates;
 
@@ -90,8 +99,17 @@ public partial class SettingsWindow : Window
         _settings.ContentWidthOverride = ContentWidthChoices[(string)ContentWidthBox.SelectedItem];
         _settings.FontFamilyOverride = string.IsNullOrWhiteSpace(FontFamilyBox.Text) ? null : FontFamilyBox.Text.Trim();
         _settings.FontSizeOverride = int.TryParse(FontSizeBox.Text, out var size) && size is >= 8 and <= 40 ? size : null;
+        _settings.LineSpacing = LineSpacingBox.SelectedItem is double lineSpacing ? lineSpacing : 1.65;
+        _settings.ParagraphSpacingEm = ParagraphSpacingBox.SelectedItem is double paragraphSpacing ? paragraphSpacing : 1.0;
         _settings.LineEndingPolicy = (LineEndingPolicy)LineEndingBox.SelectedItem;
+        var assetName = AssetDirectoryBox.Text.Trim();
+        _settings.AssetDirectoryName = assetName.Length > 0 &&
+            !Path.IsPathRooted(assetName) && !assetName.Split('/', '\\').Contains("..")
+            ? assetName
+            : "assets";
+        _settings.ExportPreset = (ExportPreset)ExportPresetBox.SelectedItem;
         _settings.SplitViewByDefault = SplitDefaultBox.IsChecked == true;
+        _settings.RestorePreviousSession = RestoreSessionBox.IsChecked == true;
         _settings.LoadRemoteImages = RemoteImagesBox.IsChecked == true;
         _settings.CheckForUpdates = UpdateCheckBox.IsChecked == true;
 

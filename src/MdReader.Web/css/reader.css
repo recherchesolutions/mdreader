@@ -21,6 +21,8 @@
 :root,
 :root[data-theme="light"] {
   color-scheme: light;
+  --line-height: 1.65;
+  --paragraph-spacing: 1em;
 
   /* Page */
   --bg: #ffffff;              /* page background */
@@ -104,6 +106,33 @@
   --hl-meta: #ffa657;
 }
 
+:root[data-theme="high-contrast"] {
+  color-scheme: dark;
+  --bg: Canvas;
+  --fg: CanvasText;
+  --fg-muted: CanvasText;
+  --accent: LinkText;
+  --accent-hover: LinkText;
+  --surface-code: Canvas;
+  --surface-card: Canvas;
+  --surface-hover: Highlight;
+  --rule: CanvasText;
+  --rule-strong: CanvasText;
+  --inline-code-bg: Canvas;
+  --inline-code-fg: CanvasText;
+  --notice-fg: CanvasText;
+  --notice-border: CanvasText;
+  --error-fg: CanvasText;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+
 /* --------------------------------------------------------------------------
    Typography scale and page frame
    --------------------------------------------------------------------------
@@ -175,7 +204,7 @@ h1:first-child { margin-top: 0; }
    Prose basics
    -------------------------------------------------------------------------- */
 p, ul, ol, dl, table, blockquote, pre, figure {
-  margin: 0 0 1em;
+  margin: 0 0 var(--paragraph-spacing);
 }
 
 a {
@@ -318,6 +347,13 @@ tbody tr:hover { background: color-mix(in srgb, var(--surface-hover) 55%, transp
    Images and figures
    -------------------------------------------------------------------------- */
 img { max-width: 100%; height: auto; }
+
+img.local-missing {
+  min-width: 12rem;
+  min-height: 3rem;
+  border: 1px dashed var(--muted);
+  background: color-mix(in srgb, var(--bg) 92%, var(--accent));
+}
 
 figure { text-align: center; }
 figcaption { color: var(--fg-muted); font-size: 0.9em; margin-top: 0.4em; }

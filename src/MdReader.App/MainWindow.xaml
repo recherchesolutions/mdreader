@@ -51,6 +51,7 @@
             <MenuItem Header="_File">
                 <MenuItem Header="_Open…" InputGestureText="Ctrl+O" Click="OnOpenClick"/>
                 <MenuItem x:Name="RecentMenu" Header="Open _Recent"/>
+                <MenuItem Header="Reopen Closed _Tab" InputGestureText="Ctrl+Shift+T" Click="OnReopenClosedTabClick"/>
                 <Separator/>
                 <MenuItem x:Name="SaveMenuItem" Header="_Save" InputGestureText="Ctrl+S" Click="OnSaveClick"/>
                 <Separator/>
@@ -82,6 +83,7 @@
                 </MenuItem>
             </MenuItem>
             <MenuItem Header="_Tools">
+                <MenuItem Header="Document _Diagnostics…" Click="OnDiagnosticsClick"/>
                 <MenuItem Header="_Settings…" Click="OnSettingsClick"/>
             </MenuItem>
             <MenuItem Header="_Help">
@@ -177,6 +179,8 @@
                                AutomationProperties.Name="Reading statistics"/>
                     <TextBlock x:Name="ZoomStatus" Text="100%" Margin="0,0,16,0" Opacity="0.7"/>
                     <Button x:Name="ModeButton" Padding="10,1" Click="OnModeButtonClick" Content="Reader"
+                            AutomationProperties.AutomationId="ModeToggleButton"
+                            AutomationProperties.Name="Toggle reader and source mode"
                             ToolTip="Toggle Reader / Source (Ctrl+E)"/>
                 </StackPanel>
             </StatusBarItem>

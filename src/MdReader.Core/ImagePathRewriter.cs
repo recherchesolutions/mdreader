@@ -74,6 +74,13 @@ public static class ImagePathRewriter
                     CountParentTraversals(unescaped) <= options.MaxImagePathParentLevels &&
                     IsWithinRoot(resolved, documentRoot))
                 {
+                    if (!File.Exists(resolved))
+                    {
+                        img.SetAttribute("data-missing-src", src);
+                        img.SetAttribute("title", $"Missing local image: {src}");
+                        img.ClassList.Add("local-missing");
+                    }
+
                     if (options.KeepRelativeImagePaths)
                     {
                         // Export path: the original relative src stays valid

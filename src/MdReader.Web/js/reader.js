@@ -533,7 +533,7 @@
    * Theme / font overrides
    * ------------------------------------------------------------------ */
   function setTheme(theme) {
-    state.theme = theme === "dark" ? "dark" : "light";
+    state.theme = theme === "dark" || theme === "high-contrast" ? theme : "light";
     document.documentElement.setAttribute("data-theme", state.theme);
     // Mermaid bakes its theme into rendered SVG, so re-render diagrams.
     maybeRenderMermaid();
@@ -560,6 +560,8 @@
     else { root.style.removeProperty("--font-size"); }
     if (msg.contentWidth) { root.style.setProperty("--content-width", msg.contentWidth + "px"); }
     else { root.style.removeProperty("--content-width"); }
+    if (msg.lineSpacing) { root.style.setProperty("--line-height", msg.lineSpacing); }
+    if (msg.paragraphSpacing) { root.style.setProperty("--paragraph-spacing", msg.paragraphSpacing + "em"); }
   }
 
   /* ------------------------------------------------------------------ *

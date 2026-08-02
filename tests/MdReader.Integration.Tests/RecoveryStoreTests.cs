@@ -68,20 +68,22 @@ public sealed class RecoveryStoreTests : IDisposable
     }
 
     [Fact]
-    public void Entry_cap_refuses_new_snapshots_but_updates_existing()
+    public void Entry_cap_evicts_an_old_snapshot_and_updates_existing()
     {
         for (var i = 0; i < RecoveryStore.MaxEntries; i++)
         {
             _store.Save($@"C:\docs\file{i}.md", $"text {i}");
         }
 
-        _store.Save(@"C:\docs\overflow.md", "should not be stored");
-        _store.Save(@"C:\docs\file0.md", "updated");
+        _store.Save(@"C:\docs\overflow.md", "newest");
 
         var entries = _store.ListAndPrune();
         entries.Should().HaveCount(RecoveryStore.MaxEntries);
-        entries.Should().NotContain(e => e.OriginalPath.EndsWith("overflow.md"));
-        entries.Single(e => e.OriginalPath.EndsWith("file0.md")).Text.Should().Be("updated");
+        entries.Should().Contain(e => e.OriginalPath.EndsWith("overflow.md") && e.Text == "newest");
+
+        var retained = entries.First(e => !e.OriginalPath.EndsWith("overflow.md"));
+        _store.Save(retained.OriginalPath, "updated");
+        _store.ListAndPrune().Single(e => e.OriginalPath == retained.OriginalPath).Text.Should().Be("updated");
     }
 
     [Fact]

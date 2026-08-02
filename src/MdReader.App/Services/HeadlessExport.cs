@@ -1,5 +1,6 @@
 using System.IO;
 using System.Windows;
+using Microsoft.Win32;
 
 namespace MdReader.App.Services;
 
@@ -17,6 +18,28 @@ public static class HeadlessExport
         {
             ConsoleInterop.TryWriteLine($"mdreader: file not found: {args.FilePath}");
             return 2;
+        }
+
+        if (args.ExportPdfPrompt)
+        {
+            var sourcePath = Path.GetFullPath(args.FilePath);
+            var dialog = new SaveFileDialog
+            {
+                Title = "Export Markdown to PDF",
+                Filter = "PDF document (*.pdf)|*.pdf|All files (*.*)|*.*",
+                AddExtension = true,
+                DefaultExt = ".pdf",
+                FileName = Path.GetFileNameWithoutExtension(sourcePath) + ".pdf",
+                InitialDirectory = Path.GetDirectoryName(sourcePath),
+                OverwritePrompt = true,
+            };
+
+            if (dialog.ShowDialog() != true)
+            {
+                return 0;
+            }
+
+            args = args with { ExportPdfPath = dialog.FileName, ExportPdfPrompt = false };
         }
 
         var settings = AppSettings.Load();
@@ -61,7 +84,7 @@ public static class HeadlessExport
 
             if (args.ExportPdfPath is { } pdfPath)
             {
-                await view.ExportPdfAsync(pdfPath);
+                await view.ExportPdfAsync(pdfPath, settings.ExportPreset);
                 ConsoleInterop.TryWriteLine($"mdreader: wrote {pdfPath}");
             }
 

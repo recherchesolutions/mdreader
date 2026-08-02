@@ -1,0 +1,32 @@
+name: mdreader render and validate
+description: Build mdreader-convert, validate local links, and optionally render HTML
+inputs:
+  path:
+    description: Markdown file or directory to validate
+    required: true
+  output:
+    description: Optional HTML output path (file inputs only)
+    required: false
+    default: ""
+runs:
+  using: composite
+  steps:
+    - name: Set up .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 10.0.x
+    - name: Build mdreader converter
+      shell: pwsh
+      run: dotnet build src/MdReader.Cli/MdReader.Cli.csproj -c Release
+    - name: Validate local links and images
+      shell: pwsh
+      env:
+        MDREADER_INPUT: ${{ inputs.path }}
+      run: dotnet run --project src/MdReader.Cli -c Release --no-build -- --check-links $env:MDREADER_INPUT --diagnostics json
+    - name: Render deterministic HTML
+      if: inputs.output != ''
+      shell: pwsh
+      env:
+        MDREADER_INPUT: ${{ inputs.path }}
+        MDREADER_OUTPUT: ${{ inputs.output }}
+      run: dotnet run --project src/MdReader.Cli -c Release --no-build -- $env:MDREADER_INPUT $env:MDREADER_OUTPUT --deterministic

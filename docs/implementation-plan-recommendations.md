@@ -79,7 +79,8 @@ unchanged, byte-faithful IO preserved, `dotnet format` + tests green per phase.
   platform linker (Desktop C++ workload). Smallest follow-up: run
   `dotnet publish -p:PublishAot=true` on a runner with VS Build Tools and
   audit AngleSharp/YamlDotNet trim warnings.
-- Framework-dependent single-file CLI measured 36.8 MB compressed, which is
-  suspiciously self-contained-sized; needs a clean-obj investigation before
-  shipping as a release variant. Not published yet - existing artifacts are
-  unchanged.
+- Follow-up clean publish: the framework-dependent CLI is 2.63 MB across 12
+  files and passes `--version` under the installed .NET 10 runtime. The release
+  workflow now ships it as an additional ZIP while retaining the self-contained
+  executable as the default. Native AOT remains an explicit manual CI experiment
+  until its compatibility audit passes.

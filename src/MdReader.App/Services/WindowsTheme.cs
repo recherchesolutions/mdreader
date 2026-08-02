@@ -1,4 +1,5 @@
 using System.IO;
+using System.Windows;
 using Microsoft.Win32;
 
 namespace MdReader.App.Services;
@@ -22,12 +23,20 @@ public static class WindowsTheme
     }
 
     /// <summary>Resolves the effective theme name ("light"/"dark") for a setting.</summary>
-    public static string Resolve(ThemeChoice choice) => choice switch
+    public static string Resolve(ThemeChoice choice)
     {
-        ThemeChoice.Light => "light",
-        ThemeChoice.Dark => "dark",
-        _ => IsSystemDark() ? "dark" : "light",
-    };
+        if (SystemParameters.HighContrast)
+        {
+            return "high-contrast";
+        }
+
+        return choice switch
+        {
+            ThemeChoice.Light => "light",
+            ThemeChoice.Dark => "dark",
+            _ => IsSystemDark() ? "dark" : "light",
+        };
+    }
 
     /// <summary>Fires when the user changes the Windows theme. Handlers run on the UI thread.</summary>
     public static event EventHandler? SystemThemeChanged;
@@ -36,7 +45,9 @@ public static class WindowsTheme
     {
         SystemEvents.UserPreferenceChanged += (_, e) =>
         {
-            if (e.Category == UserPreferenceCategory.General)
+            if (e.Category is UserPreferenceCategory.General or
+                UserPreferenceCategory.Accessibility or
+                UserPreferenceCategory.VisualStyle)
             {
                 SystemThemeChanged?.Invoke(null, EventArgs.Empty);
             }

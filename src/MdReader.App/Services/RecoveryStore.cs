@@ -33,6 +33,7 @@ public sealed class RecoveryStore
     private static readonly JsonSerializerOptions JsonOpts = new() { WriteIndented = false };
 
     private readonly string _root;
+    private readonly Lock _sync = new();
 
     /// <param name="root">Overridable for tests; defaults to %APPDATA%\mdreader\recovery.</param>
     public RecoveryStore(string? root = null)
@@ -50,37 +51,47 @@ public sealed class RecoveryStore
     /// <summary>Writes/updates the snapshot for a document. Best-effort: recovery must never break editing.</summary>
     public void Save(string originalPath, string text)
     {
-        try
+        lock (_sync)
         {
-            if (Encoding.UTF8.GetByteCount(text) > MaxTextBytes)
+            try
             {
-                return; // oversized buffers are not snapshotted (documented bound)
+                if (Encoding.UTF8.GetByteCount(text) > MaxTextBytes)
+                {
+                    DiagLog.Write($"recovery: {Path.GetFileName(originalPath)} exceeds the 10 MB snapshot limit");
+                    return;
+                }
+
+                Directory.CreateDirectory(_root);
+
+                var entryPath = EntryPath(originalPath);
+                if (!File.Exists(entryPath))
+                {
+                    var snapshots = Directory.EnumerateFiles(_root, "*.json")
+                        .Select(path => new FileInfo(path))
+                        .OrderBy(info => info.LastWriteTimeUtc)
+                        .ToList();
+                    while (snapshots.Count >= MaxEntries)
+                    {
+                        var oldest = snapshots[0];
+                        snapshots.RemoveAt(0);
+                        File.Delete(oldest.FullName);
+                        DiagLog.Write($"recovery: pruned oldest snapshot {oldest.Name}");
+                    }
+                }
+
+                var entry = new RecoveryEntry
+                {
+                    OriginalPath = Path.GetFullPath(originalPath),
+                    Text = text,
+                    SavedAt = DateTimeOffset.Now,
+                };
+
+                AtomicFileWriter.Write(entryPath, JsonSerializer.SerializeToUtf8Bytes(entry, JsonOpts));
             }
-
-            Directory.CreateDirectory(_root);
-
-            // Enforce the entry cap: refuse new entries beyond it (existing
-            // entries keep updating).
-            var entryPath = EntryPath(originalPath);
-            if (!File.Exists(entryPath) &&
-                Directory.EnumerateFiles(_root, "*.json").Count() >= MaxEntries)
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException)
             {
-                DiagLog.Write("recovery: entry cap reached, snapshot skipped");
-                return;
+                DiagLog.Write($"recovery save failed: {ex.Message}");
             }
-
-            var entry = new RecoveryEntry
-            {
-                OriginalPath = Path.GetFullPath(originalPath),
-                Text = text,
-                SavedAt = DateTimeOffset.Now,
-            };
-
-            AtomicFileWriter.Write(entryPath, JsonSerializer.SerializeToUtf8Bytes(entry, JsonOpts));
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException)
-        {
-            DiagLog.Write($"recovery save failed: {ex.Message}");
         }
     }
 
