@@ -5,6 +5,29 @@ namespace MdReader.Core.Tests;
 public class ReadingStatsTests
 {
     [Fact]
+    public void Markdown_count_excludes_code_front_matter_and_link_targets()
+    {
+        const string text = """
+            ---
+            secret: hidden metadata words
+            ---
+            # Visible heading
+
+            Read the [friendly guide](https://example.com/hidden/target/words).
+
+            `inline hidden code`
+
+            ```csharp
+            many hidden code words here
+            ```
+            """;
+
+        var result = ReadingStats.CountMarkdown(text);
+
+        result.Words.Should().Be(6);
+    }
+
+    [Fact]
     public void Empty_document_is_zero_and_under_a_minute()
     {
         var r = ReadingStats.Count("");

@@ -66,6 +66,16 @@ public partial class App : Application
         {
             _ = window.OpenFileAsync(args.FilePath, args.OpenInSource ? ViewMode.Source : null);
         }
+        else if (_settings.RestorePreviousSession)
+        {
+            _ = window.RestoreSessionAsync();
+        }
+        else if (!_settings.HasSeenWelcomeDocument)
+        {
+            _settings.HasSeenWelcomeDocument = true;
+            _settings.Save();
+            _ = window.OpenWelcomeDocumentAsync();
+        }
 
         // Crash recovery: offer any unsaved-buffer snapshots from a previous
         // session once the window is up.

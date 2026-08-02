@@ -34,12 +34,14 @@ public partial class DocumentView : UserControl
 
     private System.Windows.Threading.DispatcherTimer? _recoveryDebounce;
     private readonly NavigationHistory _navHistory = new();
+    private int _renderGeneration;
 
     /// <summary>Headings from the last render (Ctrl+G heading picker).</summary>
     public IReadOnlyList<HeadingInfo> Headings { get; private set; } = [];
 
     /// <summary>Word count / reading time of the current buffer (recomputed per render).</summary>
     public ReadingStats.Result Stats { get; private set; }
+    public IReadOnlyList<DocumentDiagnostic> Diagnostics { get; private set; } = [];
 
     /// <summary>Source line count of the current buffer.</summary>
     public int TotalLines { get; private set; } = 1;
@@ -381,6 +383,7 @@ public partial class DocumentView : UserControl
         }
 
         var text = _currentText;
+        var generation = Interlocked.Increment(ref _renderGeneration);
         var options = new RenderOptions
         {
             DocumentPath = FilePath,
@@ -388,9 +391,14 @@ public partial class DocumentView : UserControl
         };
 
         var largeDoc = text.Length > 1_500_000;
-        var (result, stats, totalLines) = await Task.Run(() =>
-            (Renderer.Render(text, options), ReadingStats.Count(text), text.AsSpan().Count('\n') + 1));
-        Stats = stats;
+        var (result, totalLines) = await Task.Run(() =>
+            (Renderer.Render(text, options), text.AsSpan().Count('\n') + 1));
+        if (generation != Volatile.Read(ref _renderGeneration))
+        {
+            return; // superseded by newer content or shutdown
+        }
+        Stats = result.ReadingStats;
+        Diagnostics = result.Diagnostics;
         TotalLines = totalLines;
 
         DocumentTitle = result.Title;
@@ -465,6 +473,8 @@ public partial class DocumentView : UserControl
             family = _settings.FontFamilyOverride,
             size = _settings.FontSizeOverride,
             contentWidth = _settings.ContentWidthOverride,
+            lineSpacing = _settings.LineSpacing,
+            paragraphSpacing = _settings.ParagraphSpacingEm,
         });
     }
 
@@ -905,6 +915,16 @@ public partial class DocumentView : UserControl
     public void FindPrev() => PostReader(new { type = "find", action = "prev" });
     public void FindClear() => PostReader(new { type = "find", action = "clear" });
 
+    public async Task InsertMarkdownAsync(string markdown)
+    {
+        if (Mode == ViewMode.Reader)
+        {
+            await SetModeAsync(ViewMode.Source);
+        }
+
+        PostEditor(new { type = "insertText", text = markdown });
+    }
+
     /// <summary>Ctrl+F in Source mode uses Monaco's native find.</summary>
     public bool UsesNativeFind => Mode == ViewMode.Source;
 
@@ -1050,8 +1070,26 @@ public partial class DocumentView : UserControl
         }
     }
 
-    public Task ExportPdfAsync(string outputPath) =>
-        ReaderView.CoreWebView2.PrintToPdfAsync(outputPath, null);
+    public Task ExportPdfAsync(string outputPath, ExportPreset preset = ExportPreset.Document)
+    {
+        var settings = ReaderView.CoreWebView2.Environment.CreatePrintSettings();
+        settings.ShouldPrintBackgrounds = true;
+        settings.ShouldPrintHeaderAndFooter = false;
+        switch (preset)
+        {
+            case ExportPreset.TechnicalReport:
+                settings.MarginTop = settings.MarginBottom = 0.6;
+                settings.MarginLeft = settings.MarginRight = 0.65;
+                break;
+            case ExportPreset.Compact:
+                settings.MarginTop = settings.MarginBottom = 0.3;
+                settings.MarginLeft = settings.MarginRight = 0.35;
+                settings.ScaleFactor = 0.85;
+                break;
+        }
+
+        return ReaderView.CoreWebView2.PrintToPdfAsync(outputPath, settings);
+    }
 
     public void ShowPrintDialog() =>
         ReaderView.CoreWebView2.ShowPrintUI(Microsoft.Web.WebView2.Core.CoreWebView2PrintDialogKind.Browser);
@@ -1119,6 +1157,7 @@ public partial class DocumentView : UserControl
      * ------------------------------------------------------------------ */
     public void Shutdown()
     {
+        Interlocked.Increment(ref _renderGeneration);
         ScrollPositions.Set(FilePath, _lastKnownLine);
         _recoveryDebounce?.Stop();
         _watcher?.Dispose();

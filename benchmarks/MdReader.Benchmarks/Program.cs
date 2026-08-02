@@ -99,6 +99,7 @@ public static class QuickBench
             ["render1MBMs"] = Measure("render 1MB", 5, Render(renderer, 1024 * 1024)),
             ["render10MBMs"] = Measure("render 10MB", 2, Render(renderer, 10 * 1024 * 1024)),
         };
+        ReportPhaseProfile(renderer, BenchDocs.Build(100 * 1024));
 
         if (!enforceBudgets)
         {
@@ -135,6 +136,20 @@ public static class QuickBench
     {
         var doc = BenchDocs.Build(bytes);
         return () => renderer.Render(doc);
+    }
+
+    private static void ReportPhaseProfile(MarkdownRenderer renderer, string document)
+    {
+        var phases = new Dictionary<string, TimeSpan>();
+        _ = renderer.Render(document, new RenderOptions
+        {
+            TimingSink = (name, elapsed) => phases[name] = elapsed,
+        });
+        Console.WriteLine("phase profile (100KB):");
+        foreach (var (name, elapsed) in phases)
+        {
+            Console.WriteLine($"  {name,-16} {elapsed.TotalMilliseconds,8:F1} ms");
+        }
     }
 
     private static string? FindBudgetsFile()

@@ -38,9 +38,15 @@ vault, no notebook, no sync, no account.
   progress in the status bar.
 - **Single instance with tabs**, drag & drop, recent files, find in both modes,
   zoom that persists.
+- **Windows integration.** Explorer offers **Open in mdreader** and
+  **Export to PDF…** for registered Markdown files. PDF export always asks
+  where to save and never overwrites silently.
+- **Everyday convenience.** Optional session restoration, reopen-closed-tab,
+  pinned recent files, a one-time local welcome document, dropped-image
+  insertion, and warnings for missing local links and images.
 - **Export**: self-contained HTML (diagrams and math pre-rendered, images
   embedded), PDF, print, and copy-as-rich-text that pastes cleanly into Word
-  and Outlook.
+  and Outlook. Document, Technical report, and Compact presets are available.
 - **Scriptable**: `mdreader file.md --export-html out.html` and
   `--export-pdf out.pdf` work headlessly for CI.
 
@@ -96,6 +102,27 @@ Windows 11 and any machine with Edge).
 | `Ctrl+P` | Print |
 | `Ctrl` `+` / `-` / `0` | Zoom |
 | `Ctrl+O` / `Ctrl+W` / `Ctrl+Tab` | Open / close tab / next tab |
+| `Ctrl+Shift+T` | Reopen the most recently closed tab |
+
+## Developer CLI
+
+`mdreader-convert` supports ordinary files, standard streams, watch mode,
+deterministic HTML, and local-only validation. Diagnostics are written to
+stderr so stdout remains safe for pipelines.
+
+```powershell
+Get-Content README.md -Raw | mdreader-convert --stdin --stdout --deterministic > README.html
+mdreader-convert README.md README.html --watch
+mdreader-convert --check-links docs --diagnostics json
+```
+
+For stdin content, use `--base-dir <folder>` to resolve relative assets. A
+versioned `.mdreader.json` may set `theme` and `deterministic`; its schema is in
+[`docs/mdreader-config.schema.json`](docs/mdreader-config.schema.json). Project
+configuration cannot silently enable raw HTML or remote content.
+
+Exit codes are `0` for success, `1` for conversion/internal failure, `2` for
+invalid input, and `4` when validation finds local problems.
 
 ## Source mode
 

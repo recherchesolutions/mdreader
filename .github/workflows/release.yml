@@ -45,6 +45,20 @@ jobs:
           -p:Version=${{ steps.version.outputs.version }}
           -o publish/cli
 
+      - name: Publish mdreader-convert (framework dependent)
+        run: >
+          dotnet publish src/MdReader.Cli -c Release -r win-x64
+          --self-contained false -p:PublishSingleFile=false
+          -p:Version=${{ steps.version.outputs.version }}
+          -o publish/cli-fdd
+
+      - name: Smoke test converter variants
+        run: |
+          & publish\cli\mdreader-convert.exe --version
+          if ($LASTEXITCODE -ne 0) { throw "self-contained converter smoke test failed" }
+          dotnet publish\cli-fdd\mdreader-convert.dll --version
+          if ($LASTEXITCODE -ne 0) { throw "framework-dependent converter smoke test failed" }
+
       - name: Sign binaries (optional — skipped without secrets)
         if: ${{ vars.AZURE_TRUSTED_SIGNING_ENDPOINT != '' }}
         uses: azure/trusted-signing-action@v0
@@ -87,6 +101,7 @@ jobs:
           # Portable ZIP: many corporate users cannot run installers.
           Compress-Archive -Path publish\app\* -DestinationPath "artifacts\mdreader-$v-portable-win-x64.zip"
           Copy-Item publish\cli\mdreader-convert.exe "artifacts\mdreader-convert-$v-win-x64.exe"
+          Compress-Archive -Path publish\cli-fdd\* -DestinationPath "artifacts\mdreader-convert-$v-framework-dependent-win-x64.zip"
           # Checksums
           Get-ChildItem artifacts | ForEach-Object {
             "{0}  {1}" -f (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower(), $_.Name

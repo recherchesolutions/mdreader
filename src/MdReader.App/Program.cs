@@ -1,4 +1,6 @@
+using System.IO;
 using MdReader.App.Services;
+using MdReader.Core;
 
 namespace MdReader.App;
 
@@ -22,6 +24,13 @@ public static class Program
             return;
         }
 
+        if (parsed.TestSaveTextBase64 is { } encoded &&
+            Environment.GetEnvironmentVariable("MDREADER_TEST_MODE") == "1")
+        {
+            Environment.ExitCode = RunTestSave(parsed.FilePath, encoded);
+            return;
+        }
+
         if (!parsed.IsHeadlessExport && parsed.FilePath is not null &&
             SingleInstance.TryActivateExistingInstance(
                 new SingleInstance.Activation(parsed.FilePath, parsed.OpenInSource)))
@@ -32,5 +41,25 @@ public static class Program
         var app = new App();
         app.InitializeComponent();
         app.Run();
+    }
+
+    private static int RunTestSave(string? path, string encoded)
+    {
+        try
+        {
+            if (path is null || !File.Exists(path))
+            {
+                return 2;
+            }
+
+            var original = TextFileIO.Read(path);
+            var text = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(encoded));
+            TextFileIO.Write(path, original, text);
+            return 0;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or FormatException)
+        {
+            return 1;
+        }
     }
 }

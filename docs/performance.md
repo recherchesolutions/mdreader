@@ -16,6 +16,13 @@ no multi-megabyte fixtures are checked in.
 
 ## Budgets (benchmarks/budgets.json)
 
+Quick runs also report parse, document analysis, HTML rendering, sanitization,
+image rewriting, serialization, and front-matter phases separately for a
+100 KB document. The full BenchmarkDotNet run includes allocation diagnostics.
+The 10 MB threshold is a catastrophic regression guardrail rather than a claim
+that such a document is interactive; obsolete GUI render generations are
+superseded and never update a tab.
+
 Baseline measured 2026-08-01 on the project build machine (Windows Server VM);
 budgets are baseline ×2 so environmental noise doesn't flake CI while real
 regressions (like the O(n²) issues found during development) still fail fast.

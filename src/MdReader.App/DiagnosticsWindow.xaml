@@ -1,0 +1,14 @@
+<Window x:Class="MdReader.App.DiagnosticsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Document diagnostics — mdreader" Width="720" Height="420"
+        MinWidth="480" MinHeight="280" WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False">
+    <DockPanel Margin="12">
+        <TextBlock x:Name="Summary" DockPanel.Dock="Top" Margin="0,0,0,8" TextWrapping="Wrap"/>
+        <Button DockPanel.Dock="Bottom" HorizontalAlignment="Right" Padding="14,4"
+                Margin="0,10,0,0" IsCancel="True">Close</Button>
+        <ListBox x:Name="DiagnosticList" MouseDoubleClick="OnDoubleClick"
+                 AutomationProperties.Name="Document diagnostics"/>
+    </DockPanel>
+</Window>

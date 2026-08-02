@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/recherchesolutions/mdreader/docs/mdreader-config.schema.json",
+  "title": "mdreader project configuration",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "version": { "const": 1 },
+    "theme": { "enum": ["light", "dark"] },
+    "deterministic": { "type": "boolean" },
+    "contentWidth": { "type": "integer", "minimum": 320, "maximum": 10000 },
+    "customCss": { "type": "string", "description": "Relative path within the configuration directory" }
+  }
+}

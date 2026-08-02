@@ -1,4 +1,8 @@
 using System.Globalization;
+using System.Text;
+using Markdig;
+using Markdig.Syntax;
+using Markdig.Syntax.Inlines;
 
 namespace MdReader.Core;
 
@@ -38,16 +42,16 @@ public static class ReadingStats
         var cjk = 0;
         var inWord = false;
 
-        foreach (var c in text)
+        foreach (var rune in text.EnumerateRunes())
         {
-            if (IsCjk(c))
+            if (IsCjk(rune.Value))
             {
                 cjk++;
                 inWord = false;
                 continue;
             }
 
-            if (char.IsLetterOrDigit(c))
+            if (Rune.IsLetterOrDigit(rune))
             {
                 if (!inWord)
                 {
@@ -65,10 +69,36 @@ public static class ReadingStats
         return new Result(words, cjk, TimeSpan.FromMinutes(minutes));
     }
 
-    private static bool IsCjk(char c) =>
+    /// <summary>
+    /// Counts visible prose from Markdown rather than syntax and hidden targets.
+    /// Code blocks, inline code, front matter, raw HTML, and link destinations
+    /// are excluded; visible link labels and image alt text remain.
+    /// </summary>
+    public static Result CountMarkdown(string markdown)
+    {
+        var document = Markdown.Parse(markdown, MarkdownPipelineFactory.Safe);
+        return CountDocument(document);
+    }
+
+    internal static Result CountDocument(MarkdownDocument document)
+    {
+        var visible = new StringBuilder(4096);
+
+        foreach (var literal in document.Descendants<LiteralInline>())
+        {
+            visible.Append(literal.Content.AsSpan());
+            visible.Append(' ');
+        }
+
+        return Count(visible.ToString());
+    }
+
+
+    private static bool IsCjk(int c) =>
         (c >= 0x4E00 && c <= 0x9FFF)   // CJK Unified Ideographs
         || (c >= 0x3400 && c <= 0x4DBF) // Extension A
         || (c >= 0x3040 && c <= 0x30FF) // Hiragana + Katakana
         || (c >= 0xAC00 && c <= 0xD7AF) // Hangul syllables
-        || (c >= 0xF900 && c <= 0xFAFF); // CJK Compatibility Ideographs
+        || (c >= 0xF900 && c <= 0xFAFF) // CJK Compatibility Ideographs
+        || (c >= 0x20000 && c <= 0x3134F); // CJK extensions B through H
 }

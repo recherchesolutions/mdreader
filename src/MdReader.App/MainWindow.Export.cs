@@ -33,7 +33,8 @@ public partial class MainWindow
             var html = ExportService.BuildSelfContainedHtml(
                 body, doc.EffectiveThemeName, embedImages: true,
                 title: doc.DocumentTitle ?? Path.GetFileNameWithoutExtension(doc.FilePath),
-                customThemeCss: doc.CustomThemeCss);
+                customThemeCss: doc.CustomThemeCss,
+                preset: _settings.ExportPreset);
             await File.WriteAllTextAsync(dialog.FileName, html);
             SetStatus($"Exported {Path.GetFileName(dialog.FileName)}");
         }
@@ -65,7 +66,7 @@ public partial class MainWindow
         try
         {
             await doc.WaitForFullRenderAsync(TimeSpan.FromSeconds(30));
-            await doc.ExportPdfAsync(dialog.FileName);
+            await doc.ExportPdfAsync(dialog.FileName, _settings.ExportPreset);
             SetStatus($"Exported {Path.GetFileName(dialog.FileName)}");
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException)

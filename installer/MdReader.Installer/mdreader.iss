@@ -50,7 +50,6 @@ ArchitecturesInstallIn64BitMode=x64compatible
 [Tasks]
 Name: "startmenuicon"; Description: "Create a Start Menu shortcut"; GroupDescription: "Shortcuts:"
 Name: "desktopicon"; Description: "Create a Desktop shortcut"; GroupDescription: "Shortcuts:"; Flags: unchecked
-Name: "openwithmenu"; Description: "Add ""Open with mdreader"" to the Explorer context menu"; GroupDescription: "Shell integration:"
 ; Opt-in extra extensions (spec §4.1). .md and .markdown are always declared.
 Name: "ext_mdown";  Description: "Register .mdown";  GroupDescription: "Additional file types:"; Flags: unchecked
 Name: "ext_mkd";    Description: "Register .mkd";    GroupDescription: "Additional file types:"; Flags: unchecked
@@ -109,11 +108,18 @@ Root: HKA; Subkey: "Software\Classes\.mdx\OpenWithProgids"; ValueType: string; V
 Root: HKA; Subkey: "Software\mdreader\Capabilities\FileAssociations"; ValueType: string; ValueName: ".mdx"; ValueData: "MdReader.Markdown.1"; Tasks: ext_mdx
 
 ; ---- Optional Explorer context menu (per-task) -------------------------------
-Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.md\shell\mdreader"; ValueType: string; ValueData: "Open with mdreader"; Flags: uninsdeletekey; Tasks: openwithmenu
-Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.md\shell\mdreader"; ValueType: string; ValueName: "Icon"; ValueData: """{app}\mdreader.exe"",0"; Tasks: openwithmenu
-Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.md\shell\mdreader\command"; ValueType: string; ValueData: """{app}\mdreader.exe"" ""%1"""; Tasks: openwithmenu
-Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.markdown\shell\mdreader"; ValueType: string; ValueData: "Open with mdreader"; Flags: uninsdeletekey; Tasks: openwithmenu
-Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.markdown\shell\mdreader\command"; ValueType: string; ValueData: """{app}\mdreader.exe"" ""%1"""; Tasks: openwithmenu
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.md\shell\mdreader.open"; ValueType: string; ValueData: "Open in mdreader"; ValueName: "MUIVerb"; Flags: uninsdeletekey
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.md\shell\mdreader.open"; ValueType: string; ValueName: "Icon"; ValueData: """{app}\mdreader.exe"",0"
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.md\shell\mdreader.open\command"; ValueType: string; ValueData: """{app}\mdreader.exe"" ""%1"""
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.md\shell\mdreader.exportPdf"; ValueType: string; ValueData: "Export to PDF…"; ValueName: "MUIVerb"; Flags: uninsdeletekey
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.md\shell\mdreader.exportPdf"; ValueType: string; ValueName: "Icon"; ValueData: """{app}\mdreader.exe"",0"
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.md\shell\mdreader.exportPdf\command"; ValueType: string; ValueData: """{app}\mdreader.exe"" ""%1"" --export-pdf-prompt"
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.markdown\shell\mdreader.open"; ValueType: string; ValueData: "Open in mdreader"; ValueName: "MUIVerb"; Flags: uninsdeletekey
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.markdown\shell\mdreader.open"; ValueType: string; ValueName: "Icon"; ValueData: """{app}\mdreader.exe"",0"
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.markdown\shell\mdreader.open\command"; ValueType: string; ValueData: """{app}\mdreader.exe"" ""%1"""
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.markdown\shell\mdreader.exportPdf"; ValueType: string; ValueData: "Export to PDF…"; ValueName: "MUIVerb"; Flags: uninsdeletekey
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.markdown\shell\mdreader.exportPdf"; ValueType: string; ValueName: "Icon"; ValueData: """{app}\mdreader.exe"",0"
+Root: HKA; Subkey: "Software\Classes\SystemFileAssociations\.markdown\shell\mdreader.exportPdf\command"; ValueType: string; ValueData: """{app}\mdreader.exe"" ""%1"" --export-pdf-prompt"
 
 [Run]
 Filename: "{app}\mdreader.exe"; Description: "Launch mdreader"; Flags: nowait postinstall skipifsilent

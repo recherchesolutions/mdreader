@@ -1,0 +1,29 @@
+name: Native AOT CLI experiment
+
+on:
+  workflow_dispatch:
+
+jobs:
+  publish-aot:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Publish Native AOT
+        run: >
+          dotnet publish src/MdReader.Cli -c Release -r win-x64
+          --self-contained true -p:PublishAot=true
+          -p:IlcGenerateCompleteTypeMetadata=true
+          -o publish/cli-aot
+      - name: Smoke test
+        run: |
+          & publish\cli-aot\mdreader-convert.exe --version
+          if ($LASTEXITCODE -ne 0) { throw "Native AOT converter smoke test failed" }
+          "# AOT smoke" | & publish\cli-aot\mdreader-convert.exe --stdin --stdout | Out-File smoke.html -Encoding utf8
+          if (-not (Select-String -Path smoke.html -Pattern "AOT smoke" -Quiet)) { throw "Native AOT render failed" }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mdreader-convert-native-aot-experiment
+          path: publish/cli-aot/**

@@ -18,4 +18,8 @@ public sealed record RenderResult
     /// or references no local images.
     /// </summary>
     public string? DocumentRootPath { get; init; }
+
+    public ReadingStats.Result ReadingStats { get; init; }
+
+    public IReadOnlyList<DocumentDiagnostic> Diagnostics { get; init; } = [];
 }

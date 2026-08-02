@@ -24,6 +24,9 @@
     <None Include="Assets\mdreader-doc.ico">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Include="Assets\welcome.md">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
   <!-- Bundle all web assets (reader.html, editor.html, css, js, vendor libs) beside the exe. -->

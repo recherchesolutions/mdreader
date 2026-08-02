@@ -12,7 +12,8 @@ namespace MdReader.App;
 public partial class MainWindow : Window
 {
     private readonly AppSettings _settings;
-    private bool _suppressFindChange;
+    private readonly LinkedList<string> _closedTabs = new();
+    private const int MaxClosedTabs = 20;
 
     public MainWindow(AppSettings settings)
     {
@@ -166,6 +167,7 @@ public partial class MainWindow : Window
         }
 
         view.Shutdown();
+        RememberClosedTab(view.FilePath);
         Tabs.Items.Remove(tab);
         UpdateEmptyState();
         UpdateWindowTitle();
@@ -340,6 +342,13 @@ public partial class MainWindow : Window
 
         if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
         {
+            if (e.Key == Key.T && Keyboard.Modifiers.HasFlag(ModifierKeys.Shift))
+            {
+                e.Handled = true;
+                _ = ReopenClosedTabAsync();
+                return;
+            }
+
             string? name = e.Key switch
             {
                 Key.E => Keyboard.Modifiers.HasFlag(ModifierKeys.Shift) ? "toggleSplit" : "toggleMode",
@@ -406,11 +415,6 @@ public partial class MainWindow : Window
 
     private void OnFindTextChanged(object sender, RoutedEventArgs e)
     {
-        if (_suppressFindChange)
-        {
-            return;
-        }
-
         ActiveDocument?.FindStart(FindBox.Text, FindMatchCase.IsChecked == true);
     }
 
@@ -502,21 +506,146 @@ public partial class MainWindow : Window
         RecentMenu.Items.Clear();
         RecentList.Items.Clear();
 
-        var existing = _settings.RecentFiles.Where(File.Exists).ToList();
+        var pinned = _settings.PinnedFiles.Where(File.Exists).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        var existing = pinned.Concat(_settings.RecentFiles.Where(File.Exists))
+            .Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         RecentHeader.Visibility = existing.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
         RecentMenu.IsEnabled = existing.Count > 0;
 
         foreach (var path in existing)
         {
-            var menuItem = new MenuItem { Header = path };
+            var isPinned = pinned.Contains(path, StringComparer.OrdinalIgnoreCase);
+            var menuItem = new MenuItem { Header = (isPinned ? "★ " : string.Empty) + path };
             menuItem.Click += (_, _) => _ = OpenFileAsync(path);
+            menuItem.ContextMenu = BuildRecentContextMenu(path, isPinned);
             RecentMenu.Items.Add(menuItem);
 
             var link = new TextBlock { Margin = new Thickness(0, 2, 0, 2) };
-            var hyperlink = new Hyperlink(new Run(path));
+            var hyperlink = new Hyperlink(new Run((isPinned ? "★ " : string.Empty) + path));
             hyperlink.Click += (_, _) => _ = OpenFileAsync(path);
             link.Inlines.Add(hyperlink);
+            link.ContextMenu = BuildRecentContextMenu(path, isPinned);
             RecentList.Items.Add(link);
+        }
+
+        if (existing.Count > 0)
+        {
+            RecentMenu.Items.Add(new Separator());
+            var clearRecent = new MenuItem { Header = "Clear unpinned recent files" };
+            clearRecent.Click += (_, _) =>
+            {
+                _settings.RecentFiles = _settings.RecentFiles
+                    .Where(path => _settings.PinnedFiles.Contains(path, StringComparer.OrdinalIgnoreCase)).ToList();
+                _settings.Save();
+                RefreshRecentUi();
+            };
+            RecentMenu.Items.Add(clearRecent);
+
+            var clearAll = new MenuItem { Header = "Clear recent files and pins" };
+            clearAll.Click += (_, _) =>
+            {
+                _settings.RecentFiles.Clear();
+                _settings.PinnedFiles.Clear();
+                _settings.Save();
+                RefreshRecentUi();
+            };
+            RecentMenu.Items.Add(clearAll);
+        }
+    }
+
+    private ContextMenu BuildRecentContextMenu(string path, bool isPinned)
+    {
+        var menu = new ContextMenu();
+        var pin = new MenuItem { Header = isPinned ? "Unpin" : "Pin" };
+        pin.Click += (_, _) =>
+        {
+            _settings.PinnedFiles.RemoveAll(p => string.Equals(p, path, StringComparison.OrdinalIgnoreCase));
+            if (!isPinned)
+            {
+                _settings.PinnedFiles.Insert(0, path);
+                if (_settings.PinnedFiles.Count > AppSettings.MaxPinnedFiles)
+                {
+                    _settings.PinnedFiles.RemoveRange(AppSettings.MaxPinnedFiles,
+                        _settings.PinnedFiles.Count - AppSettings.MaxPinnedFiles);
+                }
+            }
+
+            _settings.Save();
+            RefreshRecentUi();
+        };
+        menu.Items.Add(pin);
+        return menu;
+    }
+
+    private void RememberClosedTab(string path)
+    {
+        var existing = _closedTabs.Find(path);
+        if (existing is not null)
+        {
+            _closedTabs.Remove(existing);
+        }
+
+        _closedTabs.AddFirst(path);
+        while (_closedTabs.Count > MaxClosedTabs)
+        {
+            _closedTabs.RemoveLast();
+        }
+    }
+
+    private async Task ReopenClosedTabAsync()
+    {
+        while (_closedTabs.First is { } node)
+        {
+            _closedTabs.RemoveFirst();
+            if (File.Exists(node.Value))
+            {
+                await OpenFileAsync(node.Value);
+                return;
+            }
+        }
+
+        SetStatus("No recently closed tab is available.");
+    }
+
+    public async Task RestoreSessionAsync()
+    {
+        var states = _settings.SessionTabs.Take(AppSettings.MaxSessionTabs).ToList();
+        foreach (var state in states.Where(s => File.Exists(s.FilePath)))
+        {
+            await OpenFileAsync(state.FilePath, state.Mode);
+        }
+
+        if (_settings.ActiveSessionFile is { } active)
+        {
+            foreach (TabItem tab in Tabs.Items)
+            {
+                if (tab.Content is DocumentView doc &&
+                    string.Equals(doc.FilePath, active, StringComparison.OrdinalIgnoreCase))
+                {
+                    Tabs.SelectedItem = tab;
+                    break;
+                }
+            }
+        }
+    }
+
+    public async Task OpenWelcomeDocumentAsync()
+    {
+        var sampleDirectory = Path.Combine(AppSettings.SettingsDirectory, "samples");
+        var samplePath = Path.Combine(sampleDirectory, "welcome.md");
+        if (!File.Exists(samplePath))
+        {
+            Directory.CreateDirectory(sampleDirectory);
+            var bundled = Path.Combine(AppContext.BaseDirectory, "Assets", "welcome.md");
+            if (File.Exists(bundled))
+            {
+                File.Copy(bundled, samplePath);
+            }
+        }
+
+        if (File.Exists(samplePath))
+        {
+            await OpenFileAsync(samplePath);
         }
     }
 
@@ -529,15 +658,83 @@ public partial class MainWindow : Window
         e.Handled = true;
     }
 
-    private void OnFileDrop(object sender, DragEventArgs e)
+    private async void OnFileDrop(object sender, DragEventArgs e)
     {
         if (e.Data.GetData(DataFormats.FileDrop) is string[] files)
         {
+            var images = files.Where(IsSupportedImage).ToList();
+            if (images.Count > 0 && ActiveDocument is { } active)
+            {
+                foreach (var image in images)
+                {
+                    await InsertDroppedImageAsync(active, image);
+                }
+
+                return;
+            }
+
             foreach (var file in files.Where(FileTypes.IsMarkdown))
             {
-                _ = OpenFileAsync(file);
+                await OpenFileAsync(file);
             }
         }
+    }
+
+    private static bool IsSupportedImage(string path) =>
+        new[] { ".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg" }
+            .Contains(Path.GetExtension(path), StringComparer.OrdinalIgnoreCase);
+
+    private async Task InsertDroppedImageAsync(DocumentView document, string sourcePath)
+    {
+        var documentDirectory = Path.GetDirectoryName(document.FilePath)!;
+        string targetPath;
+        if (Path.GetFullPath(sourcePath).StartsWith(
+                Path.TrimEndingDirectorySeparator(documentDirectory) + Path.DirectorySeparatorChar,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            targetPath = Path.GetFullPath(sourcePath);
+        }
+        else
+        {
+            var answer = MessageBox.Show(this,
+                $"Copy {Path.GetFileName(sourcePath)} into '{_settings.AssetDirectoryName}' and insert a relative image link?",
+                "Insert image — mdreader", MessageBoxButton.OKCancel, MessageBoxImage.Question);
+            if (answer != MessageBoxResult.OK)
+            {
+                return;
+            }
+
+            var assetDirectory = Path.GetFullPath(Path.Combine(documentDirectory, _settings.AssetDirectoryName));
+            if (!assetDirectory.StartsWith(
+                    Path.TrimEndingDirectorySeparator(documentDirectory) + Path.DirectorySeparatorChar,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                SetStatus("The configured asset folder must stay inside the document folder.");
+                return;
+            }
+
+            Directory.CreateDirectory(assetDirectory);
+            targetPath = UniqueDestination(assetDirectory, Path.GetFileName(sourcePath));
+            File.Copy(sourcePath, targetPath, overwrite: false);
+        }
+
+        var relative = Path.GetRelativePath(documentDirectory, targetPath).Replace('\\', '/');
+        var alt = Path.GetFileNameWithoutExtension(targetPath).Replace('[', '(').Replace(']', ')');
+        await document.InsertMarkdownAsync($"![{alt}]({Uri.EscapeDataString(relative).Replace("%2F", "/", StringComparison.OrdinalIgnoreCase)})");
+        SetStatus($"Inserted {Path.GetFileName(targetPath)}");
+    }
+
+    private static string UniqueDestination(string directory, string fileName)
+    {
+        var candidate = Path.Combine(directory, fileName);
+        var stem = Path.GetFileNameWithoutExtension(fileName);
+        var extension = Path.GetExtension(fileName);
+        for (var i = 1; File.Exists(candidate); i++)
+        {
+            candidate = Path.Combine(directory, $"{stem}-{i}{extension}");
+        }
+
+        return candidate;
     }
 
     /* ------------------------------------------------------------------ *
@@ -578,6 +775,9 @@ public partial class MainWindow : Window
         }
 
         _settings.WindowMaximized = WindowState == WindowState.Maximized;
+        _settings.SessionTabs = AllDocuments.Take(AppSettings.MaxSessionTabs)
+            .Select(d => new SessionTabState(d.FilePath, d.Mode)).ToList();
+        _settings.ActiveSessionFile = ActiveDocument?.FilePath;
         if (WindowState == WindowState.Normal)
         {
             _settings.WindowLeft = Left;
@@ -621,6 +821,7 @@ public partial class MainWindow : Window
     private void OnOpenClick(object sender, RoutedEventArgs e) => ShowOpenDialog();
     private async void OnSaveClick(object sender, RoutedEventArgs e) { if (ActiveDocument is { } d) { await d.SaveAsync(); } }
     private async void OnCloseTabClick(object sender, RoutedEventArgs e) { if (Tabs.SelectedItem is TabItem t) { await CloseTabAsync(t); } }
+    private async void OnReopenClosedTabClick(object sender, RoutedEventArgs e) => await ReopenClosedTabAsync();
     private void OnExitClick(object sender, RoutedEventArgs e) => Close();
 
     private async void OnReaderModeClick(object sender, RoutedEventArgs e) { if (ActiveDocument is { } d) { await d.SetModeAsync(ViewMode.Reader); UpdateCommandStates(); } }
@@ -658,6 +859,19 @@ public partial class MainWindow : Window
     private async void OnPrintClick(object sender, RoutedEventArgs e) => await PrintActiveAsync();
     private async void OnCopyRichTextClick(object sender, RoutedEventArgs e) => await CopyRichTextAsync();
     private void OnSettingsClick(object sender, RoutedEventArgs e) => ShowSettingsDialog();
+    private void OnDiagnosticsClick(object sender, RoutedEventArgs e)
+    {
+        if (ActiveDocument is not { } doc)
+        {
+            return;
+        }
+
+        var dialog = new DiagnosticsWindow(doc.Diagnostics) { Owner = this };
+        if (dialog.ShowDialog() == true && dialog.TargetLine is { } line)
+        {
+            doc.JumpToLine(line);
+        }
+    }
     private void OnDefaultAppSetClick(object sender, RoutedEventArgs e) => HandleDefaultAppSet();
     private void OnDefaultAppNotNowClick(object sender, RoutedEventArgs e) => DefaultAppBar.Visibility = Visibility.Collapsed;
     private void OnDefaultAppDontAskClick(object sender, RoutedEventArgs e) => HandleDefaultAppDontAsk();

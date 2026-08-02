@@ -24,6 +24,7 @@
                         <ComboBox x:Name="DefaultModeBox" Width="180" HorizontalAlignment="Left"/>
                     </DockPanel>
                     <CheckBox x:Name="SplitDefaultBox" Margin="170,6,0,0">Open in split view by default</CheckBox>
+                    <CheckBox x:Name="RestoreSessionBox" Margin="170,6,0,0">Restore tabs from the previous session</CheckBox>
 
                     <TextBlock FontWeight="SemiBold" Margin="0,18,0,6">Appearance</TextBlock>
                     <DockPanel Margin="0,2">
@@ -52,11 +53,27 @@
                         <TextBlock Width="170" VerticalAlignment="Center">Font size override (px)</TextBlock>
                         <TextBox x:Name="FontSizeBox" Width="60" HorizontalAlignment="Left"/>
                     </DockPanel>
+                    <DockPanel Margin="0,6,0,2">
+                        <TextBlock Width="170" VerticalAlignment="Center">Line spacing</TextBlock>
+                        <ComboBox x:Name="LineSpacingBox" Width="180" HorizontalAlignment="Left"/>
+                    </DockPanel>
+                    <DockPanel Margin="0,6,0,2">
+                        <TextBlock Width="170" VerticalAlignment="Center">Paragraph spacing</TextBlock>
+                        <ComboBox x:Name="ParagraphSpacingBox" Width="180" HorizontalAlignment="Left"/>
+                    </DockPanel>
 
                     <TextBlock FontWeight="SemiBold" Margin="0,18,0,6">Files</TextBlock>
                     <DockPanel Margin="0,2">
                         <TextBlock Width="170" VerticalAlignment="Center">Line endings on save</TextBlock>
                         <ComboBox x:Name="LineEndingBox" Width="180" HorizontalAlignment="Left"/>
+                    </DockPanel>
+                    <DockPanel Margin="0,6,0,2">
+                        <TextBlock Width="170" VerticalAlignment="Center">Dropped-image folder</TextBlock>
+                        <TextBox x:Name="AssetDirectoryBox" Width="180" HorizontalAlignment="Left"/>
+                    </DockPanel>
+                    <DockPanel Margin="0,6,0,2">
+                        <TextBlock Width="170" VerticalAlignment="Center">Export/print preset</TextBlock>
+                        <ComboBox x:Name="ExportPresetBox" Width="180" HorizontalAlignment="Left"/>
                     </DockPanel>
 
                     <TextBlock FontWeight="SemiBold" Margin="0,18,0,6">Privacy</TextBlock>

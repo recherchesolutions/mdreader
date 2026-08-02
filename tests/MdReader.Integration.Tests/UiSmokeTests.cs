@@ -38,7 +38,7 @@ public class UiSmokeTests
         window.Title.Should().Contain("mdreader");
 
         // Toggle to Source via the status-bar button (click avoids focus issues).
-        var modeButton = window.FindFirstDescendant(cf => cf.ByText("Reader"))?.AsButton();
+        var modeButton = window.FindFirstDescendant(cf => cf.ByAutomationId("ModeToggleButton"))?.AsButton();
         modeButton.Should().NotBeNull("the status bar mode button must exist");
         modeButton!.Invoke();
 
@@ -46,7 +46,7 @@ public class UiSmokeTests
             .Should().BeTrue("toggling to Source must initialize Monaco");
 
         // And back to Reader.
-        var sourceButton = window.FindFirstDescendant(cf => cf.ByText("Source"))?.AsButton();
+        var sourceButton = window.FindFirstDescendant(cf => cf.ByAutomationId("ModeToggleButton"))?.AsButton();
         sourceButton.Should().NotBeNull();
         sourceButton!.Invoke();
 

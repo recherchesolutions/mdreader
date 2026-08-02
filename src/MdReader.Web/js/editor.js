@@ -154,7 +154,7 @@
         post({ type: "scrollLine", line: topVisibleLine() });
         break;
       case "setTheme":
-        monaco.editor.setTheme(msg.theme === "dark" ? "vs-dark" : "vs");
+        monaco.editor.setTheme(msg.theme === "high-contrast" ? "hc-black" : (msg.theme === "dark" ? "vs-dark" : "vs"));
         break;
       case "find":
         editor.focus();
@@ -163,6 +163,13 @@
       case "focus":
         editor.focus();
         break;
+      case "insertText": {
+        var selection = editor.getSelection();
+        editor.executeEdits("mdreader", [{ range: selection, text: msg.text || "", forceMoveMarkers: true }]);
+        editor.pushUndoStop();
+        editor.focus();
+        break;
+      }
     }
   }
 

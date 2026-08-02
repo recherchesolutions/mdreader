@@ -19,6 +19,8 @@ public sealed class FileAssociationRegistrar
 {
     public const string ProgId = "MdReader.Markdown.1";
     public const string AppRegistrationName = "mdreader";
+    internal const string OpenVerbName = "mdreader.open";
+    internal const string ExportPdfVerbName = "mdreader.exportPdf";
 
     private readonly RegistryKey _root;
 
@@ -107,6 +109,7 @@ public sealed class FileAssociationRegistrar
         {
             using var openWith = _root.CreateSubKey($@"Software\Classes\{extension}\OpenWithProgids");
             openWith.SetValue(ProgId, string.Empty, RegistryValueKind.String);
+            RegisterExplorerVerbs(exePath, extension);
         }
 
         ShellNotify.AssociationsChanged();
@@ -149,9 +152,34 @@ public sealed class FileAssociationRegistrar
             // If OpenWithProgids is now empty and the extension key has nothing
             // else mdreader-related, leave the rest of the key alone — other
             // apps' data under it is not ours to clean up.
+
+            var shellBase = $@"Software\Classes\SystemFileAssociations\{extension}\shell";
+            _root.DeleteSubKeyTree($@"{shellBase}\{OpenVerbName}", throwOnMissingSubKey: false);
+            _root.DeleteSubKeyTree($@"{shellBase}\{ExportPdfVerbName}", throwOnMissingSubKey: false);
         }
 
         ShellNotify.AssociationsChanged();
+    }
+
+    private void RegisterExplorerVerbs(string exePath, string extension)
+    {
+        var shellBase = $@"Software\Classes\SystemFileAssociations\{extension}\shell";
+
+        using (var open = _root.CreateSubKey($@"{shellBase}\{OpenVerbName}"))
+        {
+            open.SetValue(null, "Open in mdreader");
+            open.SetValue("Icon", $"\"{exePath}\",0");
+            using var command = open.CreateSubKey("command");
+            command.SetValue(null, $"\"{exePath}\" \"%1\"");
+        }
+
+        using (var export = _root.CreateSubKey($@"{shellBase}\{ExportPdfVerbName}"))
+        {
+            export.SetValue(null, "Export to PDF…");
+            export.SetValue("Icon", $"\"{exePath}\",0");
+            using var command = export.CreateSubKey("command");
+            command.SetValue(null, $"\"{exePath}\" \"%1\" --export-pdf-prompt");
+        }
     }
 
     /// <summary>True when the ProgId's open command points at this exe.</summary>

@@ -8,6 +8,18 @@ All notable changes to mdreader are documented here. The format follows
 
 ### Added
 
+- Explorer commands to open Markdown in mdreader or export it to PDF through a
+  safe Save As dialog.
+- Optional previous-session restoration, `Ctrl+Shift+T` reopen-closed-tab, and
+  pinnable recent files.
+- Source-mode image drops that copy into a configurable local assets folder and
+  insert a relative Markdown reference without overwriting existing files.
+- Shared GUI/CLI diagnostics for missing local images, documents, and anchors.
+- Reading controls for line and paragraph spacing, export/print presets, and a
+  one-time local welcome document.
+- CLI stdin/stdout pipelines, watch mode, JSON Lines diagnostics, directory
+  validation, deterministic output, `.mdreader.json`, and a reusable local
+  GitHub Action.
 - Back/forward jump history per tab (Alt+Left / Alt+Right, command bar buttons).
 - Ctrl+G: go to a source line or filter/jump to a heading.
 - Per-file scroll position restored across restarts (bounded, prunable store).
@@ -22,6 +34,12 @@ All notable changes to mdreader are documented here. The format follows
 
 - Saves are atomic (same-directory temp file + replace) while remaining
   byte-faithful for encoding, BOM, and line endings.
+- Reading statistics count visible Markdown prose rather than code blocks,
+  front matter, link destinations, and syntax.
+- The current default content width is Full width; the 720 px classic reading
+  measure remains available in Settings.
+- Recovery storage evicts the oldest snapshot at its bounded capacity instead
+  of silently leaving a newly edited document unprotected.
 
 ## [0.3.0] - 2026-08-01
 
