@@ -32,6 +32,9 @@ All notable changes to mdreader are documented here. The format follows
 
 ### Changed
 
+- Releases can be prepared and published from the GitHub Actions UI with a
+  validated version input; the workflow updates release metadata and creates
+  the tag after tests pass.
 - Saves are atomic (same-directory temp file + replace) while remaining
   byte-faithful for encoding, BOM, and line endings.
 - Reading statistics count visible Markdown prose rather than code blocks,

@@ -3,17 +3,113 @@ name: Release
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release (for example, 0.5.0)"
+        required: true
+        type: string
 
 permissions:
   contents: write
 
 jobs:
+  prepare-release:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: windows-latest
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.repository.default_branch }}
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Validate version
+        id: version
+        env:
+          RELEASE_VERSION_INPUT: ${{ inputs.version }}
+        run: |
+          $v = $env:RELEASE_VERSION_INPUT.Trim().TrimStart("v")
+          if ($v -notmatch '^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$') {
+            throw "Version '$v' is not valid SemVer (expected values such as 0.5.0 or 0.5.0-rc.1)."
+          }
+          $tag = "v$v"
+          git rev-parse --verify --quiet "refs/tags/$tag"
+          if ($LASTEXITCODE -eq 0) { throw "Tag $tag already exists." }
+          "version=$v" >> $env:GITHUB_OUTPUT
+          "tag=$tag" >> $env:GITHUB_OUTPUT
+
+      - name: Update release metadata
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          $v = $env:RELEASE_VERSION
+
+          $propsPath = "Directory.Build.props"
+          $props = [IO.File]::ReadAllText($propsPath)
+          $updatedProps = [regex]::Replace($props, '<Version>[^<]+</Version>', "<Version>$v</Version>", 1)
+          if ($updatedProps -eq $props -and $props -notmatch "<Version>$([regex]::Escape($v))</Version>") {
+            throw "Could not update the version in $propsPath."
+          }
+          [IO.File]::WriteAllText($propsPath, $updatedProps)
+
+          $installerPath = "installer/MdReader.Installer/mdreader.iss"
+          $installer = [IO.File]::ReadAllText($installerPath)
+          $updatedInstaller = [regex]::Replace($installer, '#define AppVersion "[^"]+"', "#define AppVersion `"$v`"", 1)
+          if ($updatedInstaller -eq $installer -and $installer -notmatch "#define AppVersion `"$([regex]::Escape($v))`"") {
+            throw "Could not update the fallback version in $installerPath."
+          }
+          [IO.File]::WriteAllText($installerPath, $updatedInstaller)
+
+          $changelogPath = "CHANGELOG.md"
+          $changelog = [IO.File]::ReadAllText($changelogPath)
+          if ($changelog -notmatch "(?m)^## \[$([regex]::Escape($v))\](?: -|$)") {
+            $newline = if ($changelog.Contains("`r`n")) { "`r`n" } else { "`n" }
+            $heading = "## [Unreleased]"
+            if (-not $changelog.Contains($heading)) { throw "CHANGELOG.md has no Unreleased heading." }
+            $datedHeading = "## [$v] - $([DateTime]::UtcNow.ToString('yyyy-MM-dd'))"
+            $changelog = $changelog.Replace($heading, "$heading$newline$newline$datedHeading")
+            [IO.File]::WriteAllText($changelogPath, $changelog)
+          }
+
+      - name: Test release candidate
+        run: |
+          dotnet test tests/MdReader.Core.Tests -c Release
+          if ($LASTEXITCODE -ne 0) { throw "Core tests failed." }
+          dotnet test tests/MdReader.Shell.Tests -c Release
+          if ($LASTEXITCODE -ne 0) { throw "Shell tests failed." }
+
+      - name: Commit and tag release
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          RELEASE_TAG: ${{ steps.version.outputs.tag }}
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Directory.Build.props CHANGELOG.md installer/MdReader.Installer/mdreader.iss
+          git diff --cached --quiet
+          if ($LASTEXITCODE -ne 0) {
+            git commit -m "Release $env:RELEASE_VERSION"
+          }
+          git tag -a $env:RELEASE_TAG -m "mdreader $env:RELEASE_VERSION"
+          git push --atomic origin "HEAD:refs/heads/$env:DEFAULT_BRANCH" "refs/tags/$env:RELEASE_TAG"
+
   release:
+    needs: prepare-release
+    if: always() && (github.event_name == 'push' || needs.prepare-release.result == 'success')
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: ${{ github.event_name == 'workflow_dispatch' && needs.prepare-release.outputs.tag || github.ref }}
 
       - uses: actions/setup-dotnet@v4
         with:
@@ -21,9 +117,13 @@ jobs:
 
       - name: Derive version from tag
         id: version
+        env:
+          RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && needs.prepare-release.outputs.tag || github.ref_name }}
         run: |
-          $v = "${{ github.ref_name }}".TrimStart("v")
+          $tag = $env:RELEASE_TAG
+          $v = $tag.TrimStart("v")
           "version=$v" >> $env:GITHUB_OUTPUT
+          "tag=$tag" >> $env:GITHUB_OUTPUT
 
       - name: Test (Core)
         run: dotnet test tests/MdReader.Core.Tests -c Release
@@ -109,8 +209,10 @@ jobs:
 
       - name: Generate changelog section
         id: changelog
+        env:
+          RELEASE_TAG: ${{ steps.version.outputs.tag }}
         run: |
-          $tag = "${{ github.ref_name }}"
+          $tag = $env:RELEASE_TAG
           $prev = git describe --tags --abbrev=0 "$tag^" 2>$null
           if ($LASTEXITCODE -ne 0) { $prev = $null }
           $range = if ($prev) { "$prev..$tag" } else { $tag }
@@ -121,6 +223,7 @@ jobs:
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ steps.version.outputs.tag }}
           body_path: release-notes.md
           files: |
             artifacts/*
