@@ -252,6 +252,15 @@ public partial class MainWindow : Window
             case "toggleToc":
                 ActiveDocument?.ToggleToc();
                 break;
+            case "goTo":
+                ShowGoToDialog();
+                break;
+            case "navBack":
+                ActiveDocument?.GoBack();
+                break;
+            case "navForward":
+                ActiveDocument?.GoForward();
+                break;
             case "openFile":
                 ShowOpenDialog();
                 break;
@@ -283,6 +292,18 @@ public partial class MainWindow : Window
 
     private void OnWindowKeyDown(object sender, KeyEventArgs e)
     {
+        // Alt+Left / Alt+Right: jump history (system key: read e.SystemKey).
+        if (Keyboard.Modifiers == ModifierKeys.Alt)
+        {
+            var key = e.Key == Key.System ? e.SystemKey : e.Key;
+            if (key is Key.Left or Key.Right)
+            {
+                e.Handled = true;
+                _ = HandleShortcutAsync(key == Key.Left ? "navBack" : "navForward");
+                return;
+            }
+        }
+
         if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
         {
             string? name = e.Key switch
@@ -291,6 +312,7 @@ public partial class MainWindow : Window
                 Key.O when Keyboard.Modifiers.HasFlag(ModifierKeys.Shift) => "toggleToc",
                 Key.O => "openFile",
                 Key.F => "find",
+                Key.G => "goTo",
                 Key.S => "save",
                 Key.P => "print",
                 Key.W => "closeTab",
@@ -374,6 +396,21 @@ public partial class MainWindow : Window
                 HideFindBar();
                 e.Handled = true;
                 break;
+        }
+    }
+
+    private void ShowGoToDialog()
+    {
+        if (ActiveDocument is not { } doc)
+        {
+            return;
+        }
+
+        var maxLine = doc.CurrentText.AsSpan().Count('\n') + 1;
+        var dialog = new GoToWindow(doc.Headings, maxLine) { Owner = this };
+        if (dialog.ShowDialog() == true && dialog.TargetLine is { } line)
+        {
+            doc.JumpToLine(line);
         }
     }
 
@@ -521,6 +558,8 @@ public partial class MainWindow : Window
         {
             doc.Shutdown();
         }
+
+        DocumentView.ScrollPositions.Save();
     }
 
     public void SetStatus(string message) => StatusText.Text = message;

@@ -29,7 +29,17 @@ public partial class DocumentView : UserControl
     /// <summary>Crash-recovery snapshots for dirty buffers (shared, appdata-backed).</summary>
     public static RecoveryStore Recovery { get; } = new();
 
+    /// <summary>Last reader position per file, persisted across restarts.</summary>
+    public static ScrollPositionStore ScrollPositions { get; } = new();
+
     private System.Windows.Threading.DispatcherTimer? _recoveryDebounce;
+    private readonly NavigationHistory _navHistory = new();
+
+    /// <summary>Headings from the last render (Ctrl+G heading picker).</summary>
+    public IReadOnlyList<HeadingInfo> Headings { get; private set; } = [];
+
+    public bool CanGoBack => _navHistory.CanGoBack;
+    public bool CanGoForward => _navHistory.CanGoForward;
 
     private readonly AppSettings _settings;
     private TextFileInfo? _file;
@@ -79,6 +89,9 @@ public partial class DocumentView : UserControl
         DiagLog.Write($"InitializeAsync start: {FilePath}");
         _file = TextFileIO.Read(FilePath);
         _currentText = _file.Text;
+
+        // Land where the user left off last session (falls back to the top).
+        _lastKnownLine = ScrollPositions.Get(FilePath) ?? 1;
 
         var pooled = WebViewPool.TryTake();
         bool pageAlreadyLoaded;
@@ -241,6 +254,7 @@ public partial class DocumentView : UserControl
                 if (Mode is ViewMode.Reader or ViewMode.Split)
                 {
                     _lastKnownLine = root.GetProperty("line").GetInt32();
+                    ScrollPositions.Set(FilePath, _lastKnownLine);
                     if (Mode == ViewMode.Split)
                     {
                         SyncScroll(toEditor: true, _lastKnownLine);
@@ -251,6 +265,12 @@ public partial class DocumentView : UserControl
 
             case "scrollLine":
                 _lastKnownLine = root.GetProperty("line").GetInt32();
+                break;
+
+            case "jumped":
+                // A deliberate in-document jump (anchor/TOC): record for Back.
+                _navHistory.RecordJump(root.GetProperty("from").GetInt32());
+                StateChanged?.Invoke(this, EventArgs.Empty);
                 break;
 
             case "tocEligibility":
@@ -350,6 +370,7 @@ public partial class DocumentView : UserControl
         var result = await Task.Run(() => Renderer.Render(text, options));
 
         DocumentTitle = result.Title;
+        Headings = result.Headings;
         DiagLog.Write($"render complete: {result.BodyHtml.Length} chars, {result.Headings.Count} headings");
         PostReader(new
         {
@@ -865,8 +886,67 @@ public partial class DocumentView : UserControl
 
     public void ToggleToc()
     {
-        TocOpen = !TocOpen && TocEligible;
-        PostReader(new { type = "setToc", open = TocOpen });
+        // First press opens (focused for keyboard use); if already open, a
+        // second press moves focus into the rail; closing is Escape or again.
+        if (!TocOpen)
+        {
+            TocOpen = TocEligible;
+            PostReader(new { type = "setToc", open = TocOpen, focus = true });
+        }
+        else
+        {
+            PostReader(new { type = "setToc", open = true, focus = true });
+        }
+    }
+
+    public void CloseToc()
+    {
+        TocOpen = false;
+        PostReader(new { type = "setToc", open = false });
+    }
+
+    /* ------------------------------------------------------------------ *
+     * Jump navigation (Ctrl+G, back/forward)
+     * ------------------------------------------------------------------ */
+    /// <summary>Deliberate jump to a source line; records history.</summary>
+    public void JumpToLine(int line)
+    {
+        _navHistory.RecordJump(_lastKnownLine);
+        ScrollBothTo(line);
+        StateChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    public void GoBack()
+    {
+        if (_navHistory.GoBack(_lastKnownLine) is { } target)
+        {
+            ScrollBothTo(target);
+            StateChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    public void GoForward()
+    {
+        if (_navHistory.GoForward(_lastKnownLine) is { } target)
+        {
+            ScrollBothTo(target);
+            StateChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    private void ScrollBothTo(int line)
+    {
+        _lastKnownLine = line;
+        ScrollPositions.Set(FilePath, line);
+        if (Mode is ViewMode.Reader or ViewMode.Split)
+        {
+            PostReader(new { type = "scrollToLine", line });
+        }
+
+        if (Mode is ViewMode.Source or ViewMode.Split)
+        {
+            PostEditor(new { type = "scrollToLine", line });
+        }
     }
 
     public void ApplyTheme()
@@ -1013,6 +1093,7 @@ public partial class DocumentView : UserControl
      * ------------------------------------------------------------------ */
     public void Shutdown()
     {
+        ScrollPositions.Set(FilePath, _lastKnownLine);
         _recoveryDebounce?.Stop();
         _watcher?.Dispose();
         _watcher = null;
