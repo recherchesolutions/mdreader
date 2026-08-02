@@ -23,7 +23,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "Native AOT converter smoke test failed" }
           "# AOT smoke" | & publish\cli-aot\mdreader-convert.exe --stdin --stdout | Out-File smoke.html -Encoding utf8
           if (-not (Select-String -Path smoke.html -Pattern "AOT smoke" -Quiet)) { throw "Native AOT render failed" }
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: mdreader-convert-native-aot-experiment
           path: publish/cli-aot/**
