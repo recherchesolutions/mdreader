@@ -71,3 +71,15 @@ unchanged, byte-faithful IO preserved, `dotnet format` + tests green per phase.
 ## Phase 9 — Final verification
 - format check, Release build, all unit + blocking suites, benchmarks --check,
   packaging smoke, final diff review; report per the brief.
+
+## Phase 7 findings (2026-08-02)
+
+- Baseline sizes: installer 48.8 MB, portable 66.1 MB, self-contained CLI 72.4 MB.
+- Native AOT CLI: **blocked on this machine** - ilcompiler needs the MSVC
+  platform linker (Desktop C++ workload). Smallest follow-up: run
+  `dotnet publish -p:PublishAot=true` on a runner with VS Build Tools and
+  audit AngleSharp/YamlDotNet trim warnings.
+- Framework-dependent single-file CLI measured 36.8 MB compressed, which is
+  suspiciously self-contained-sized; needs a clean-obj investigation before
+  shipping as a release variant. Not published yet - existing artifacts are
+  unchanged.

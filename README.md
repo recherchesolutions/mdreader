@@ -50,7 +50,7 @@ runs under a Content Security Policy with `connect-src 'none'`.
 **winget** (recommended):
 
 ```powershell
-winget install mdreader
+winget install recherchesolutions.mdreader
 ```
 
 **Installer**: download `mdreader-setup-<version>.exe` from
@@ -82,6 +82,8 @@ Windows 11 and any machine with Edge).
 | `Ctrl+Shift+E` | Toggle split view |
 | `Ctrl+Shift+O` | Table of contents |
 | `Ctrl+F` | Find |
+| `Ctrl+G` | Go to line or heading |
+| `Alt+Left` / `Alt+Right` | Back / forward (jump history) |
 | `Ctrl+S` | Save |
 | `Ctrl+P` | Print |
 | `Ctrl` `+` / `-` / `0` | Zoom |
