@@ -40,8 +40,9 @@ jobs:
             throw "Version '$v' is not valid SemVer (expected values such as 0.5.0 or 0.5.0-rc.1)."
           }
           $tag = "v$v"
-          git rev-parse --verify --quiet "refs/tags/$tag"
-          if ($LASTEXITCODE -eq 0) { throw "Tag $tag already exists." }
+          $existingTag = git tag --list $tag
+          if ($LASTEXITCODE -ne 0) { throw "Could not inspect existing Git tags." }
+          if ($existingTag) { throw "Tag $tag already exists." }
           "version=$v" >> $env:GITHUB_OUTPUT
           "tag=$tag" >> $env:GITHUB_OUTPUT
 
@@ -94,8 +95,9 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add Directory.Build.props CHANGELOG.md installer/MdReader.Installer/mdreader.iss
-          git diff --cached --quiet
-          if ($LASTEXITCODE -ne 0) {
+          $stagedFiles = @(git diff --cached --name-only)
+          if ($LASTEXITCODE -ne 0) { throw "Could not inspect staged release metadata." }
+          if ($stagedFiles.Count -gt 0) {
             git commit -m "Release $env:RELEASE_VERSION"
           }
           git tag -a $env:RELEASE_TAG -m "mdreader $env:RELEASE_VERSION"
