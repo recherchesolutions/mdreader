@@ -8,9 +8,44 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
+        <Grid.Resources>
+            <!-- Restrained command-bar buttons: flat, subtle hover, MDL2 glyphs. -->
+            <Style x:Key="CmdButton" TargetType="Button">
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="BorderThickness" Value="0"/>
+                <Setter Property="Padding" Value="9,5"/>
+                <Setter Property="Margin" Value="1,0"/>
+                <Setter Property="FontFamily" Value="Segoe MDL2 Assets"/>
+                <Setter Property="FontSize" Value="14"/>
+                <Setter Property="VerticalAlignment" Value="Center"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="4"
+                                    Padding="{TemplateBinding Padding}">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="#20808080"/>
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter Property="Opacity" Value="0.35"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+            <Style x:Key="CmdTextButton" TargetType="Button" BasedOn="{StaticResource CmdButton}">
+                <Setter Property="FontFamily" Value="Segoe UI"/>
+                <Setter Property="FontSize" Value="12"/>
+            </Style>
+        </Grid.Resources>
 
         <Menu Grid.Row="0">
             <MenuItem Header="_File">
@@ -54,8 +89,41 @@
             </MenuItem>
         </Menu>
 
+        <!-- Compact command bar: the common actions, one restrained row. -->
+        <Border x:Name="CommandBar" Grid.Row="1" BorderBrush="#30808080" BorderThickness="0,0,0,1" Padding="6,3">
+            <DockPanel LastChildFill="False">
+                <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
+                    <Button Style="{StaticResource CmdButton}" Content="&#xE8E5;" Click="OnOpenClick"
+                            ToolTip="Open (Ctrl+O)" AutomationProperties.Name="Open file"/>
+                    <Separator Width="1" Margin="4,4" Background="#30808080"/>
+                    <Button x:Name="BackButton" Style="{StaticResource CmdButton}" Content="&#xE72B;" Click="OnBackClick"
+                            ToolTip="Back (Alt+Left)" AutomationProperties.Name="Back"/>
+                    <Button x:Name="ForwardButton" Style="{StaticResource CmdButton}" Content="&#xE72A;" Click="OnForwardClick"
+                            ToolTip="Forward (Alt+Right)" AutomationProperties.Name="Forward"/>
+                    <Separator Width="1" Margin="4,4" Background="#30808080"/>
+                    <Button x:Name="ReaderButton" Style="{StaticResource CmdTextButton}" Content="Reader" Click="OnReaderModeClick"
+                            ToolTip="Reader mode (Ctrl+E)" AutomationProperties.Name="Reader mode"/>
+                    <Button x:Name="SourceButton" Style="{StaticResource CmdTextButton}" Content="Source" Click="OnSourceModeClick"
+                            ToolTip="Source mode (Ctrl+E)" AutomationProperties.Name="Source mode"/>
+                    <Button x:Name="SplitButton" Style="{StaticResource CmdTextButton}" Content="Split" Click="OnSplitModeClick"
+                            ToolTip="Split view (Ctrl+Shift+E)" AutomationProperties.Name="Split view"/>
+                    <Separator Width="1" Margin="4,4" Background="#30808080"/>
+                    <Button x:Name="TocButton" Style="{StaticResource CmdButton}" Content="&#xE8FD;" Click="OnTocClick"
+                            ToolTip="Table of contents (Ctrl+Shift+O)" AutomationProperties.Name="Table of contents"/>
+                    <Button Style="{StaticResource CmdButton}" Content="&#xE721;" Click="OnFindToolbarClick"
+                            ToolTip="Find (Ctrl+F)" AutomationProperties.Name="Find"/>
+                </StackPanel>
+                <StackPanel x:Name="CommandBarRight" Orientation="Horizontal" DockPanel.Dock="Right">
+                    <Button Style="{StaticResource CmdTextButton}" Content="Export HTML" Click="OnExportHtmlClick"
+                            AutomationProperties.Name="Export to HTML"/>
+                    <Button Style="{StaticResource CmdTextButton}" Content="Export PDF" Click="OnExportPdfClick"
+                            AutomationProperties.Name="Export to PDF"/>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
         <!-- First-run default-app suggestion bar (non-modal, dismissible) -->
-        <Border x:Name="DefaultAppBar" Grid.Row="1" Visibility="Collapsed"
+        <Border x:Name="DefaultAppBar" Grid.Row="2" Visibility="Collapsed"
                 Background="#E7F1FB" BorderBrush="#B5CFEA" BorderThickness="0,0,0,1" Padding="10,6">
             <DockPanel LastChildFill="False">
                 <TextBlock DockPanel.Dock="Left" VerticalAlignment="Center"
@@ -67,7 +135,7 @@
         </Border>
 
         <!-- Find bar -->
-        <Border x:Name="FindBar" Grid.Row="2" Visibility="Collapsed"
+        <Border x:Name="FindBar" Grid.Row="3" Visibility="Collapsed"
                 BorderBrush="#40808080" BorderThickness="0,0,0,1" Padding="8,5">
             <DockPanel LastChildFill="False">
                 <TextBox x:Name="FindBox" DockPanel.Dock="Left" Width="260" VerticalContentAlignment="Center"
@@ -82,7 +150,7 @@
             </DockPanel>
         </Border>
 
-        <Grid Grid.Row="3">
+        <Grid Grid.Row="4">
             <!-- Hidden 0x0 host where WebViewPool pre-warms the next reader. -->
             <Canvas x:Name="WebViewWarmHost" Width="0" Height="0"
                     HorizontalAlignment="Left" VerticalAlignment="Top"/>
@@ -99,12 +167,14 @@
             </StackPanel>
         </Grid>
 
-        <StatusBar Grid.Row="4">
+        <StatusBar Grid.Row="5">
             <StatusBarItem>
                 <TextBlock x:Name="StatusText" Text="Ready"/>
             </StatusBarItem>
             <StatusBarItem HorizontalAlignment="Right">
                 <StackPanel Orientation="Horizontal">
+                    <TextBlock x:Name="StatsText" Text="" Margin="0,0,16,0" Opacity="0.7"
+                               AutomationProperties.Name="Reading statistics"/>
                     <TextBlock x:Name="ZoomStatus" Text="100%" Margin="0,0,16,0" Opacity="0.7"/>
                     <Button x:Name="ModeButton" Padding="10,1" Click="OnModeButtonClick" Content="Reader"
                             ToolTip="Toggle Reader / Source (Ctrl+E)"/>

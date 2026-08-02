@@ -28,6 +28,14 @@ vault, no notebook, no sync, no account.
   round-tripped byte-for-byte — your Git diffs stay clean.
 - **Live reload.** Files changed on disk reload in place (debounced); if you
   have unsaved edits you choose Reload or Keep mine.
+- **Navigation.** Collapsible table of contents with keyboard support,
+  `Ctrl+G` go-to-line-or-heading, back/forward through jumps
+  (`Alt+Left`/`Alt+Right`), and every file reopens at the spot you left it.
+- **Safe editing.** Atomic saves, visible dirty markers, one clear review of
+  all unsaved documents on close, and crash recovery that offers your unsaved
+  edits back on the next launch — without ever touching the file on disk.
+- **Reading info.** Unobtrusive word count, estimated reading time, and
+  progress in the status bar.
 - **Single instance with tabs**, drag & drop, recent files, find in both modes,
   zoom that persists.
 - **Export**: self-contained HTML (diagrams and math pre-rendered, images
@@ -50,7 +58,7 @@ runs under a Content Security Policy with `connect-src 'none'`.
 **winget** (recommended):
 
 ```powershell
-winget install mdreader
+winget install recherchesolutions.mdreader
 ```
 
 **Installer**: download `mdreader-setup-<version>.exe` from
@@ -82,10 +90,32 @@ Windows 11 and any machine with Edge).
 | `Ctrl+Shift+E` | Toggle split view |
 | `Ctrl+Shift+O` | Table of contents |
 | `Ctrl+F` | Find |
+| `Ctrl+G` | Go to line or heading |
+| `Alt+Left` / `Alt+Right` | Back / forward (jump history) |
 | `Ctrl+S` | Save |
 | `Ctrl+P` | Print |
 | `Ctrl` `+` / `-` / `0` | Zoom |
 | `Ctrl+O` / `Ctrl+W` / `Ctrl+Tab` | Open / close tab / next tab |
+
+## Source mode
+
+![source screenshot](docs/screenshot-source.png)
+
+## Why mdreader?
+
+A factual comparison with the usual ways people read markdown on Windows:
+
+| | mdreader | Browser extension | VS Code preview | Note-taking apps |
+|---|---|---|---|---|
+| Double-click a .md file, get a document | ✅ | manual setup, per-browser | opens an editor first | imports into a library |
+| Works fully offline | ✅ | varies | ✅ | varies |
+| Edit the raw markdown | ✅ one keystroke | ❌ | ✅ | often WYSIWYG-only |
+| Diagrams + math built in | ✅ | varies | via extensions | varies |
+| Byte-faithful saves (Git-friendly) | ✅ | n/a | ✅ | often reformats |
+| No account, no sync, no telemetry | ✅ | varies | telemetry opt-out | often account-based |
+
+If you live in a vault of linked notes, a note app serves you better — that is
+deliberately not what mdreader is.
 
 ## Custom themes
 

@@ -1,0 +1,16 @@
+<Window x:Class="MdReader.App.GoToWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Go to — mdreader" Width="440" SizeToContent="Height"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize" ShowInTaskbar="False">
+    <StackPanel Margin="14,12">
+        <TextBox x:Name="InputBox" VerticalContentAlignment="Center" Padding="6,4"
+                 TextChanged="OnInputChanged" PreviewKeyDown="OnInputKeyDown"
+                 AutomationProperties.Name="Line number or heading filter"/>
+        <TextBlock x:Name="HintText" Margin="2,4,0,2" Opacity="0.6" FontSize="11"
+                   Text="Type a line number, or text to filter headings."/>
+        <ListBox x:Name="HeadingList" MaxHeight="240" Margin="0,4,0,0"
+                 MouseDoubleClick="OnHeadingDoubleClick"
+                 AutomationProperties.Name="Matching headings"/>
+    </StackPanel>
+</Window>

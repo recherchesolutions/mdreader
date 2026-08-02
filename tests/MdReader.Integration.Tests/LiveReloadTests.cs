@@ -2,6 +2,7 @@ using FluentAssertions;
 
 namespace MdReader.Integration.Tests;
 
+[Trait("suite", "blocking")]
 public class LiveReloadTests : IDisposable
 {
     private readonly string _docPath;
@@ -20,7 +21,7 @@ public class LiveReloadTests : IDisposable
         using var app = new AppHarness($"\"{_docPath}\"");
 
         (await app.WaitForLogAsync("render complete", TimeSpan.FromSeconds(30)))
-            .Should().BeTrue("the initial render must happen");
+            .Should().BeTrue($"the initial render must happen; log tail: {app.LogTail()}");
 
         var rendersBefore = app.CountOf("render complete");
 

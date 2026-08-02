@@ -1,0 +1,6 @@
+{
+  "pipelineBuildMs": 10,
+  "render100KBMs": 300,
+  "render1MBMs": 3500,
+  "render10MBMs": 110000
+}

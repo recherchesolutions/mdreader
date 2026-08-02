@@ -42,7 +42,7 @@
         case "setFont": setFont(msg); break;
         case "scrollToLine": scrollToSourceLine(msg.line); break;
         case "requestScrollLine": post({ type: "scrollLine", line: topVisibleSourceLine() }); break;
-        case "setToc": setTocOpen(!!msg.open); break;
+        case "setToc": setTocOpen(!!msg.open, !!msg.focus); break;
         case "find": handleFind(msg); break;
         case "scrollToAnchor": scrollToAnchor(msg.id); break;
         case "setCustomCss": setCustomCss(msg.css || ""); break;
@@ -312,6 +312,8 @@
     e.preventDefault();
     var href = a.getAttribute("href") || "";
     if (href.charAt(0) === "#") {
+      // Deliberate jump: tell the host where we came from (back/forward history).
+      post({ type: "jumped", from: topVisibleSourceLine() });
       scrollToAnchor(decodeURIComponent(href.slice(1)));
       return;
     }
@@ -403,11 +405,32 @@
     tocEl.appendChild(ul);
   }
 
-  function setTocOpen(open) {
+  function setTocOpen(open, focus) {
     state.tocOpen = open && state.tocEligible;
     document.body.classList.toggle("toc-open", state.tocOpen);
     updateActiveTocEntry();
+    if (state.tocOpen && focus) {
+      var target = tocEl.querySelector("a.active") || tocEl.querySelector("a");
+      if (target) { target.focus(); }
+    }
   }
+
+  // Keyboard navigation inside the TOC rail: arrows move, Enter follows
+  // (native link behavior), Escape returns focus to the document.
+  tocEl.addEventListener("keydown", function (e) {
+    var links = Array.prototype.slice.call(tocEl.querySelectorAll("a"));
+    var index = links.indexOf(document.activeElement);
+    if (e.key === "ArrowDown" && index < links.length - 1) {
+      e.preventDefault(); links[index + 1].focus();
+    } else if (e.key === "ArrowUp" && index > 0) {
+      e.preventDefault(); links[index - 1].focus();
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      setTocOpen(false, false);
+      post({ type: "tocClosed" });
+      window.focus();
+    }
+  });
 
   function updateActiveTocEntry() {
     if (!state.tocOpen) { return; }
@@ -559,12 +582,19 @@
    * are captured here and routed to the host
    * ------------------------------------------------------------------ */
   document.addEventListener("keydown", function (e) {
+    // Alt+Left / Alt+Right: back / forward through jump history.
+    if (e.altKey && !e.ctrlKey && !e.shiftKey) {
+      if (e.key === "ArrowLeft") { e.preventDefault(); post({ type: "shortcut", name: "navBack" }); }
+      if (e.key === "ArrowRight") { e.preventDefault(); post({ type: "shortcut", name: "navForward" }); }
+      return;
+    }
     if (!e.ctrlKey || e.altKey) { return; }
     var name = null;
     switch (e.key.toLowerCase()) {
       case "e": name = e.shiftKey ? "toggleSplit" : "toggleMode"; break;
       case "o": name = e.shiftKey ? "toggleToc" : "openFile"; break;
       case "f": if (!e.shiftKey) { name = "find"; } break;
+      case "g": if (!e.shiftKey) { name = "goTo"; } break;
       case "s": if (!e.shiftKey) { name = "save"; } break;
       case "p": if (!e.shiftKey) { name = "print"; } break;
       case "w": if (!e.shiftKey) { name = "closeTab"; } break;
