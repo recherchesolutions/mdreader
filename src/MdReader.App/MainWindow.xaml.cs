@@ -34,6 +34,13 @@ public partial class MainWindow : Window
 
         // Start pre-warming a reader WebView once the visual tree is live.
         Loaded += (_, _) => WebViewPool.Attach(WebViewWarmHost);
+
+        // Narrow windows: shed the optional chrome before crowding the reader.
+        SizeChanged += (_, _) =>
+        {
+            CommandBarRight.Visibility = ActualWidth < 900 ? Visibility.Collapsed : Visibility.Visible;
+            StatsText.Visibility = ActualWidth < 700 ? Visibility.Collapsed : Visibility.Visible;
+        };
     }
 
     public DocumentView? ActiveDocument =>
@@ -234,7 +241,34 @@ public partial class MainWindow : Window
         SourceModeItem.IsChecked = doc is { Mode: ViewMode.Source };
         SplitModeItem.IsChecked = doc is { Mode: ViewMode.Split };
         ModeButton.Content = doc?.Mode.ToString() ?? "Reader";
+
+        // Command bar
+        BackButton.IsEnabled = doc is { CanGoBack: true };
+        ForwardButton.IsEnabled = doc is { CanGoForward: true };
+        TocButton.IsEnabled = doc is { TocEligible: true };
+        ReaderButton.FontWeight = doc is { Mode: ViewMode.Reader } ? FontWeights.SemiBold : FontWeights.Normal;
+        SourceButton.FontWeight = doc is { Mode: ViewMode.Source } ? FontWeights.SemiBold : FontWeights.Normal;
+        SplitButton.FontWeight = doc is { Mode: ViewMode.Split } ? FontWeights.SemiBold : FontWeights.Normal;
+
+        UpdateStats(doc);
     }
+
+    /// <summary>Status-bar reading info: "1,234 words · 6 min · 42%".</summary>
+    private void UpdateStats(DocumentView? doc)
+    {
+        if (doc is null || doc.Stats.Words + doc.Stats.CjkChars == 0)
+        {
+            StatsText.Text = string.Empty;
+            return;
+        }
+
+        var progress = $"{Math.Round(doc.Progress * 100)}%";
+        StatsText.Text = $"{doc.Stats.FormatWords()} · {doc.Stats.FormatReadingTime()} · {progress}";
+    }
+
+    private void OnBackClick(object sender, RoutedEventArgs e) => ActiveDocument?.GoBack();
+    private void OnForwardClick(object sender, RoutedEventArgs e) => ActiveDocument?.GoForward();
+    private void OnFindToolbarClick(object sender, RoutedEventArgs e) => ShowFindBar();
 
     /* ------------------------------------------------------------------ *
      * Shortcuts (routed from WebViews and from WPF key handling)

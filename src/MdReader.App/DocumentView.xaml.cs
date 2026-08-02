@@ -38,6 +38,17 @@ public partial class DocumentView : UserControl
     /// <summary>Headings from the last render (Ctrl+G heading picker).</summary>
     public IReadOnlyList<HeadingInfo> Headings { get; private set; } = [];
 
+    /// <summary>Word count / reading time of the current buffer (recomputed per render).</summary>
+    public ReadingStats.Result Stats { get; private set; }
+
+    /// <summary>Source line count of the current buffer.</summary>
+    public int TotalLines { get; private set; } = 1;
+
+    /// <summary>Reading progress 0..1, from the top visible source line.</summary>
+    public double Progress => TotalLines <= 1
+        ? 1.0
+        : Math.Clamp((double)_lastKnownLine / TotalLines, 0.0, 1.0);
+
     public bool CanGoBack => _navHistory.CanGoBack;
     public bool CanGoForward => _navHistory.CanGoForward;
 
@@ -259,6 +270,10 @@ public partial class DocumentView : UserControl
                     {
                         SyncScroll(toEditor: true, _lastKnownLine);
                     }
+
+                    // Progress display; scroll events are already throttled to
+                    // ~8/s in reader.js, so this stays cheap.
+                    StateChanged?.Invoke(this, EventArgs.Empty);
                 }
 
                 break;
@@ -367,7 +382,10 @@ public partial class DocumentView : UserControl
         };
 
         var largeDoc = text.Length > 1_500_000;
-        var result = await Task.Run(() => Renderer.Render(text, options));
+        var (result, stats, totalLines) = await Task.Run(() =>
+            (Renderer.Render(text, options), ReadingStats.Count(text), text.AsSpan().Count('\n') + 1));
+        Stats = stats;
+        TotalLines = totalLines;
 
         DocumentTitle = result.Title;
         Headings = result.Headings;
