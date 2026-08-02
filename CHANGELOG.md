@@ -6,6 +6,15 @@ All notable changes to mdreader are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- One-click releases now honor protected `main` by merging release metadata
+  through an automated PR, and publish with the classic token so downstream
+  Winget automation is triggered.
+- Large-document correctness tests no longer use a flaky wall-clock assertion
+  under coverage instrumentation; performance remains gated by benchmarks.
+- GitHub Actions dependencies use their current Node.js runtime generations.
+
 ## [0.5.0] - 2026-08-02
 
 ### Added
