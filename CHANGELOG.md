@@ -6,6 +6,8 @@ All notable changes to mdreader are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-08-02
+
 ### Added
 
 - Explorer commands to open Markdown in mdreader or export it to PDF through a
