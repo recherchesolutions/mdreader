@@ -67,6 +67,11 @@ public partial class App : Application
             _ = window.OpenFileAsync(args.FilePath, args.OpenInSource ? ViewMode.Source : null);
         }
 
+        // Crash recovery: offer any unsaved-buffer snapshots from a previous
+        // session once the window is up.
+        _ = Dispatcher.InvokeAsync(async () => await window.OfferRecoveryAsync(),
+            System.Windows.Threading.DispatcherPriority.Background);
+
         // Keep the per-user registration fresh (HKCU only, additive, idempotent).
         _ = Task.Run(window.EnsureShellRegistration);
     }

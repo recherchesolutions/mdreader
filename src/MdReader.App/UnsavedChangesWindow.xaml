@@ -1,0 +1,19 @@
+<Window x:Class="MdReader.App.UnsavedChangesWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Unsaved changes — mdreader" Width="520" SizeToContent="Height"
+        MaxHeight="480" WindowStartupLocation="CenterOwner" ResizeMode="NoResize" ShowInTaskbar="False">
+    <StackPanel Margin="18,14">
+        <TextBlock TextWrapping="Wrap" Margin="0,0,0,10"
+                   Text="The following documents have unsaved changes. Checked documents will be saved; unchecked ones will lose their changes."/>
+        <ScrollViewer MaxHeight="260" VerticalScrollBarVisibility="Auto">
+            <ItemsControl x:Name="DocumentList"/>
+        </ScrollViewer>
+        <DockPanel LastChildFill="False" Margin="0,16,0,0">
+            <Button DockPanel.Dock="Right" Padding="12,4" Margin="8,0,0,0" IsCancel="True">Cancel</Button>
+            <Button DockPanel.Dock="Right" Padding="12,4" Margin="8,0,0,0" Click="OnDiscardAllClick">Don't save</Button>
+            <Button DockPanel.Dock="Right" Padding="12,4" FontWeight="SemiBold" IsDefault="True"
+                    Click="OnSaveSelectedClick">Save selected</Button>
+        </DockPanel>
+    </StackPanel>
+</Window>

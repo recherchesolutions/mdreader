@@ -88,7 +88,8 @@ public static class TextFileIO
 
     public static void Write(string path, TextFileInfo original, string newText)
     {
-        File.WriteAllBytes(path, EncodeForSave(original, newText));
+        // Atomic: a crash mid-save must never leave a truncated file.
+        AtomicFileWriter.Write(path, EncodeForSave(original, newText));
     }
 
     /// <summary>The string to configure the editor's EOL with ("\r\n" or "\n").</summary>

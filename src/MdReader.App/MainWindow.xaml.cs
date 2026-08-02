@@ -153,24 +153,9 @@ public partial class MainWindow : Window
             return true;
         }
 
-        if (view.IsDirty)
+        if (view.IsDirty && !await ResolveUnsavedAsync([view]))
         {
-            var choice = MessageBox.Show(this,
-                $"Save changes to {Path.GetFileName(view.FilePath)}?",
-                "mdreader", MessageBoxButton.YesNoCancel, MessageBoxImage.Warning);
-
-            switch (choice)
-            {
-                case MessageBoxResult.Yes:
-                    if (!await view.SaveAsync())
-                    {
-                        return false;
-                    }
-
-                    break;
-                case MessageBoxResult.Cancel:
-                    return false;
-            }
+            return false;
         }
 
         view.Shutdown();
@@ -179,6 +164,47 @@ public partial class MainWindow : Window
         UpdateWindowTitle();
         UpdateCommandStates();
         return true;
+    }
+
+    /// <summary>
+    /// Presents the unsaved-changes review for the given dirty documents.
+    /// Returns true when closing may proceed (everything saved or explicitly
+    /// discarded), false when the user cancelled or a save failed.
+    /// </summary>
+    private async Task<bool> ResolveUnsavedAsync(IReadOnlyList<DocumentView> dirtyDocs)
+    {
+        var dialog = new UnsavedChangesWindow(dirtyDocs) { Owner = this };
+        dialog.ShowDialog();
+
+        switch (dialog.Result)
+        {
+            case UnsavedChangesResult.SaveSelected:
+                foreach (var doc in dialog.SelectedToSave)
+                {
+                    if (!await doc.SaveAsync())
+                    {
+                        return false; // save failed: never discard silently
+                    }
+                }
+
+                foreach (var doc in dialog.UncheckedToDiscard)
+                {
+                    doc.DiscardRecoverySnapshot();
+                }
+
+                return true;
+
+            case UnsavedChangesResult.DiscardAll:
+                foreach (var doc in dirtyDocs)
+                {
+                    doc.DiscardRecoverySnapshot();
+                }
+
+                return true;
+
+            default:
+                return false;
+        }
     }
 
     private void UpdateEmptyState()
@@ -462,21 +488,21 @@ public partial class MainWindow : Window
         }
     }
 
+    private bool _unsavedResolved;
+
     private async void OnWindowClosing(object? sender, System.ComponentModel.CancelEventArgs e)
     {
         var dirtyDocs = AllDocuments.Where(d => d.IsDirty).ToList();
-        if (dirtyDocs.Count > 0)
+        if (dirtyDocs.Count > 0 && !_unsavedResolved)
         {
+            // One review of everything unsaved instead of a prompt per tab.
             e.Cancel = true;
-            foreach (var tab in Tabs.Items.OfType<TabItem>().ToList())
+            if (await ResolveUnsavedAsync(dirtyDocs))
             {
-                if (!await CloseTabAsync(tab))
-                {
-                    return; // user cancelled
-                }
+                _unsavedResolved = true;
+                Close();
             }
 
-            Close();
             return;
         }
 
