@@ -293,6 +293,12 @@ public partial class DocumentView : UserControl
                 StateChanged?.Invoke(this, EventArgs.Empty);
                 break;
 
+            case "tocClosed":
+                // Closed from inside the page (Escape in the rail).
+                TocOpen = false;
+                StateChanged?.Invoke(this, EventArgs.Empty);
+                break;
+
             case "findResult":
                 FindResultChanged?.Invoke(this, (
                     root.GetProperty("total").GetInt32(),
@@ -904,17 +910,19 @@ public partial class DocumentView : UserControl
 
     public void ToggleToc()
     {
-        // First press opens (focused for keyboard use); if already open, a
-        // second press moves focus into the rail; closing is Escape or again.
-        if (!TocOpen)
+        // True toggle: open (focused for keyboard use) or close. Escape inside
+        // the rail also closes it.
+        if (TocOpen)
+        {
+            CloseToc();
+        }
+        else
         {
             TocOpen = TocEligible;
             PostReader(new { type = "setToc", open = TocOpen, focus = true });
         }
-        else
-        {
-            PostReader(new { type = "setToc", open = true, focus = true });
-        }
+
+        StateChanged?.Invoke(this, EventArgs.Empty);
     }
 
     public void CloseToc()

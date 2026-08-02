@@ -425,7 +425,10 @@
     } else if (e.key === "ArrowUp" && index > 0) {
       e.preventDefault(); links[index - 1].focus();
     } else if (e.key === "Escape") {
-      e.preventDefault(); document.activeElement.blur(); window.focus();
+      e.preventDefault();
+      setTocOpen(false, false);
+      post({ type: "tocClosed" });
+      window.focus();
     }
   });
 

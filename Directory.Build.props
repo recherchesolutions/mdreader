@@ -7,7 +7,7 @@
     <AnalysisLevel>latest</AnalysisLevel>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <!-- Single source of truth for the product version (SemVer). -->
-    <Version>0.4.0</Version>
+    <Version>0.4.1</Version>
     <Authors>mdreader contributors</Authors>
     <Product>mdreader</Product>
     <Copyright>© mdreader contributors. MIT License.</Copyright>
