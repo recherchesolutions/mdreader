@@ -34,6 +34,13 @@ public partial class MainWindow : Window
 
         // Start pre-warming a reader WebView once the visual tree is live.
         Loaded += (_, _) => WebViewPool.Attach(WebViewWarmHost);
+
+        // Narrow windows: shed the optional chrome before crowding the reader.
+        SizeChanged += (_, _) =>
+        {
+            CommandBarRight.Visibility = ActualWidth < 900 ? Visibility.Collapsed : Visibility.Visible;
+            StatsText.Visibility = ActualWidth < 700 ? Visibility.Collapsed : Visibility.Visible;
+        };
     }
 
     public DocumentView? ActiveDocument =>
@@ -153,24 +160,9 @@ public partial class MainWindow : Window
             return true;
         }
 
-        if (view.IsDirty)
+        if (view.IsDirty && !await ResolveUnsavedAsync([view]))
         {
-            var choice = MessageBox.Show(this,
-                $"Save changes to {Path.GetFileName(view.FilePath)}?",
-                "mdreader", MessageBoxButton.YesNoCancel, MessageBoxImage.Warning);
-
-            switch (choice)
-            {
-                case MessageBoxResult.Yes:
-                    if (!await view.SaveAsync())
-                    {
-                        return false;
-                    }
-
-                    break;
-                case MessageBoxResult.Cancel:
-                    return false;
-            }
+            return false;
         }
 
         view.Shutdown();
@@ -179,6 +171,47 @@ public partial class MainWindow : Window
         UpdateWindowTitle();
         UpdateCommandStates();
         return true;
+    }
+
+    /// <summary>
+    /// Presents the unsaved-changes review for the given dirty documents.
+    /// Returns true when closing may proceed (everything saved or explicitly
+    /// discarded), false when the user cancelled or a save failed.
+    /// </summary>
+    private async Task<bool> ResolveUnsavedAsync(IReadOnlyList<DocumentView> dirtyDocs)
+    {
+        var dialog = new UnsavedChangesWindow(dirtyDocs) { Owner = this };
+        dialog.ShowDialog();
+
+        switch (dialog.Result)
+        {
+            case UnsavedChangesResult.SaveSelected:
+                foreach (var doc in dialog.SelectedToSave)
+                {
+                    if (!await doc.SaveAsync())
+                    {
+                        return false; // save failed: never discard silently
+                    }
+                }
+
+                foreach (var doc in dialog.UncheckedToDiscard)
+                {
+                    doc.DiscardRecoverySnapshot();
+                }
+
+                return true;
+
+            case UnsavedChangesResult.DiscardAll:
+                foreach (var doc in dirtyDocs)
+                {
+                    doc.DiscardRecoverySnapshot();
+                }
+
+                return true;
+
+            default:
+                return false;
+        }
     }
 
     private void UpdateEmptyState()
@@ -208,7 +241,34 @@ public partial class MainWindow : Window
         SourceModeItem.IsChecked = doc is { Mode: ViewMode.Source };
         SplitModeItem.IsChecked = doc is { Mode: ViewMode.Split };
         ModeButton.Content = doc?.Mode.ToString() ?? "Reader";
+
+        // Command bar
+        BackButton.IsEnabled = doc is { CanGoBack: true };
+        ForwardButton.IsEnabled = doc is { CanGoForward: true };
+        TocButton.IsEnabled = doc is { TocEligible: true };
+        ReaderButton.FontWeight = doc is { Mode: ViewMode.Reader } ? FontWeights.SemiBold : FontWeights.Normal;
+        SourceButton.FontWeight = doc is { Mode: ViewMode.Source } ? FontWeights.SemiBold : FontWeights.Normal;
+        SplitButton.FontWeight = doc is { Mode: ViewMode.Split } ? FontWeights.SemiBold : FontWeights.Normal;
+
+        UpdateStats(doc);
     }
+
+    /// <summary>Status-bar reading info: "1,234 words · 6 min · 42%".</summary>
+    private void UpdateStats(DocumentView? doc)
+    {
+        if (doc is null || doc.Stats.Words + doc.Stats.CjkChars == 0)
+        {
+            StatsText.Text = string.Empty;
+            return;
+        }
+
+        var progress = $"{Math.Round(doc.Progress * 100)}%";
+        StatsText.Text = $"{doc.Stats.FormatWords()} · {doc.Stats.FormatReadingTime()} · {progress}";
+    }
+
+    private void OnBackClick(object sender, RoutedEventArgs e) => ActiveDocument?.GoBack();
+    private void OnForwardClick(object sender, RoutedEventArgs e) => ActiveDocument?.GoForward();
+    private void OnFindToolbarClick(object sender, RoutedEventArgs e) => ShowFindBar();
 
     /* ------------------------------------------------------------------ *
      * Shortcuts (routed from WebViews and from WPF key handling)
@@ -225,6 +285,15 @@ public partial class MainWindow : Window
                 break;
             case "toggleToc":
                 ActiveDocument?.ToggleToc();
+                break;
+            case "goTo":
+                ShowGoToDialog();
+                break;
+            case "navBack":
+                ActiveDocument?.GoBack();
+                break;
+            case "navForward":
+                ActiveDocument?.GoForward();
                 break;
             case "openFile":
                 ShowOpenDialog();
@@ -257,6 +326,18 @@ public partial class MainWindow : Window
 
     private void OnWindowKeyDown(object sender, KeyEventArgs e)
     {
+        // Alt+Left / Alt+Right: jump history (system key: read e.SystemKey).
+        if (Keyboard.Modifiers == ModifierKeys.Alt)
+        {
+            var key = e.Key == Key.System ? e.SystemKey : e.Key;
+            if (key is Key.Left or Key.Right)
+            {
+                e.Handled = true;
+                _ = HandleShortcutAsync(key == Key.Left ? "navBack" : "navForward");
+                return;
+            }
+        }
+
         if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
         {
             string? name = e.Key switch
@@ -265,6 +346,7 @@ public partial class MainWindow : Window
                 Key.O when Keyboard.Modifiers.HasFlag(ModifierKeys.Shift) => "toggleToc",
                 Key.O => "openFile",
                 Key.F => "find",
+                Key.G => "goTo",
                 Key.S => "save",
                 Key.P => "print",
                 Key.W => "closeTab",
@@ -348,6 +430,21 @@ public partial class MainWindow : Window
                 HideFindBar();
                 e.Handled = true;
                 break;
+        }
+    }
+
+    private void ShowGoToDialog()
+    {
+        if (ActiveDocument is not { } doc)
+        {
+            return;
+        }
+
+        var maxLine = doc.CurrentText.AsSpan().Count('\n') + 1;
+        var dialog = new GoToWindow(doc.Headings, maxLine) { Owner = this };
+        if (dialog.ShowDialog() == true && dialog.TargetLine is { } line)
+        {
+            doc.JumpToLine(line);
         }
     }
 
@@ -462,21 +559,21 @@ public partial class MainWindow : Window
         }
     }
 
+    private bool _unsavedResolved;
+
     private async void OnWindowClosing(object? sender, System.ComponentModel.CancelEventArgs e)
     {
         var dirtyDocs = AllDocuments.Where(d => d.IsDirty).ToList();
-        if (dirtyDocs.Count > 0)
+        if (dirtyDocs.Count > 0 && !_unsavedResolved)
         {
+            // One review of everything unsaved instead of a prompt per tab.
             e.Cancel = true;
-            foreach (var tab in Tabs.Items.OfType<TabItem>().ToList())
+            if (await ResolveUnsavedAsync(dirtyDocs))
             {
-                if (!await CloseTabAsync(tab))
-                {
-                    return; // user cancelled
-                }
+                _unsavedResolved = true;
+                Close();
             }
 
-            Close();
             return;
         }
 
@@ -495,6 +592,8 @@ public partial class MainWindow : Window
         {
             doc.Shutdown();
         }
+
+        DocumentView.ScrollPositions.Save();
     }
 
     public void SetStatus(string message) => StatusText.Text = message;

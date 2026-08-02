@@ -4,15 +4,16 @@ using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Running;
 using MdReader.Core;
 
-// `--quick` runs a fast stopwatch pass (used by CI and the phase-gate reports);
-// no arguments runs the full BenchmarkDotNet suite.
-if (args.Contains("--quick"))
+// `--quick` runs a fast stopwatch pass; `--check` additionally enforces the
+// budgets in benchmarks/budgets.json (non-zero exit on regression — used by CI).
+// No arguments runs the full BenchmarkDotNet suite.
+if (args.Contains("--quick") || args.Contains("--check"))
 {
-    QuickBench.Run();
-    return;
+    return QuickBench.Run(enforceBudgets: args.Contains("--check"));
 }
 
 BenchmarkRunner.Run<RenderBenchmarks>();
+return 0;
 
 [MemoryDiagnoser]
 public class RenderBenchmarks
@@ -78,19 +79,82 @@ public static class BenchDocs
 
 public static class QuickBench
 {
-    public static void Run()
+    /// <summary>
+    /// Stopwatch pass over the deterministic render pipeline. With
+    /// <paramref name="enforceBudgets"/>, results are compared against
+    /// benchmarks/budgets.json (baseline ×2 headroom — regression guard, not a
+    /// micro-benchmark) and the process exits non-zero on any breach.
+    /// GUI cold-start is intentionally NOT gated here: it is environment-
+    /// sensitive; measure it with tools/measure-startup.ps1 and track manually.
+    /// </summary>
+    public static int Run(bool enforceBudgets)
     {
         var renderer = new MarkdownRenderer();
         _ = renderer.Render("warm up");
 
-        Measure("pipeline build", 5, () => MarkdownPipelineFactory.Build(allowRawHtml: false));
-        var doc100 = BenchDocs.Build(100 * 1024);
-        Measure("render 100KB (target < 150ms)", 10, () => renderer.Render(doc100));
-        var doc5M = BenchDocs.Build(5 * 1024 * 1024);
-        Measure("render 5MB", 3, () => renderer.Render(doc5M));
+        var results = new Dictionary<string, double>
+        {
+            ["pipelineBuildMs"] = Measure("pipeline build", 5, () => MarkdownPipelineFactory.Build(allowRawHtml: false)),
+            ["render100KBMs"] = Measure("render 100KB", 10, Render(renderer, 100 * 1024)),
+            ["render1MBMs"] = Measure("render 1MB", 5, Render(renderer, 1024 * 1024)),
+            ["render10MBMs"] = Measure("render 10MB", 2, Render(renderer, 10 * 1024 * 1024)),
+        };
+
+        if (!enforceBudgets)
+        {
+            return 0;
+        }
+
+        var budgetPath = FindBudgetsFile();
+        if (budgetPath is null)
+        {
+            Console.Error.WriteLine("budgets.json not found");
+            return 2;
+        }
+
+        var budgets = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, double>>(
+            File.ReadAllText(budgetPath))!;
+
+        var failed = false;
+        foreach (var (key, budget) in budgets)
+        {
+            if (!results.TryGetValue(key, out var actual))
+            {
+                continue;
+            }
+
+            var ok = actual <= budget;
+            Console.WriteLine($"budget {key}: {actual:F0}ms / {budget:F0}ms {(ok ? "OK" : "EXCEEDED")}");
+            failed |= !ok;
+        }
+
+        return failed ? 1 : 0;
     }
 
-    private static void Measure(string name, int iterations, Func<object> action)
+    private static Func<object> Render(MarkdownRenderer renderer, int bytes)
+    {
+        var doc = BenchDocs.Build(bytes);
+        return () => renderer.Render(doc);
+    }
+
+    private static string? FindBudgetsFile()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null)
+        {
+            var candidate = Path.Combine(dir.FullName, "benchmarks", "budgets.json");
+            if (File.Exists(candidate))
+            {
+                return candidate;
+            }
+
+            dir = dir.Parent;
+        }
+
+        return null;
+    }
+
+    private static double Measure(string name, int iterations, Func<object> action)
     {
         _ = action(); // warm
         var sw = new Stopwatch();
@@ -104,5 +168,6 @@ public static class QuickBench
         }
 
         Console.WriteLine($"{name}: {best:F1}ms (best of {iterations})");
+        return best;
     }
 }

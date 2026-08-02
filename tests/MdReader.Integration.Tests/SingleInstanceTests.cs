@@ -2,6 +2,7 @@ using FluentAssertions;
 
 namespace MdReader.Integration.Tests;
 
+[Trait("suite", "blocking")]
 public class SingleInstanceTests : IDisposable
 {
     private readonly string _docA;

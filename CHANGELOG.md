@@ -4,6 +4,25 @@ All notable changes to mdreader are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Back/forward jump history per tab (Alt+Left / Alt+Right, command bar buttons).
+- Ctrl+G: go to a source line or filter/jump to a heading.
+- Per-file scroll position restored across restarts (bounded, prunable store).
+- Crash recovery for unsaved buffers with a restore/discard offer on launch.
+- One review dialog for all unsaved documents when closing.
+- Status bar reading info: word count, estimated reading time, progress.
+- Compact command bar (open, back/forward, modes, TOC, find, export).
+- TOC rail keyboard navigation; Ctrl+Shift+O focuses it.
+- Performance budgets enforced in CI; deterministic blocking UI smoke suite.
+
+### Changed
+
+- Saves are atomic (same-directory temp file + replace) while remaining
+  byte-faithful for encoding, BOM, and line endings.
+
 ## [0.3.0] - 2026-08-01
 
 ### Added

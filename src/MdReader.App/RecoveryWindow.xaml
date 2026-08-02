@@ -1,0 +1,20 @@
+<Window x:Class="MdReader.App.RecoveryWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Recover unsaved changes — mdreader" Width="560" SizeToContent="Height"
+        MaxHeight="500" WindowStartupLocation="CenterOwner" ResizeMode="NoResize" ShowInTaskbar="False">
+    <StackPanel Margin="18,14">
+        <TextBlock TextWrapping="Wrap" Margin="0,0,0,10"
+                   Text="mdreader found unsaved changes from a previous session. Checked documents will be reopened with their unsaved edits restored (your files on disk are untouched until you save)."/>
+        <ScrollViewer MaxHeight="280" VerticalScrollBarVisibility="Auto">
+            <ItemsControl x:Name="EntryList"/>
+        </ScrollViewer>
+        <DockPanel LastChildFill="False" Margin="0,16,0,0">
+            <Button DockPanel.Dock="Right" Padding="12,4" Margin="8,0,0,0" IsCancel="True"
+                    ToolTip="Keep the recovery data and decide next launch">Later</Button>
+            <Button DockPanel.Dock="Right" Padding="12,4" Margin="8,0,0,0" Click="OnDiscardAllClick">Discard all</Button>
+            <Button DockPanel.Dock="Right" Padding="12,4" FontWeight="SemiBold" IsDefault="True"
+                    Click="OnRestoreClick">Restore selected</Button>
+        </DockPanel>
+    </StackPanel>
+</Window>

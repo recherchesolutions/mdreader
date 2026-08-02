@@ -31,11 +31,32 @@ jobs:
           --collect:"XPlat Code Coverage"
           --results-directory coverage
 
-      - name: Integration tests (WebView2 + FlaUI)
-        # UI automation on hosted runners can be flaky; failures here are
-        # reported but do not block the build.
+      - name: Blocking UI smoke suite (deterministic, gates the build)
+        # Log-driven AppHarness tests: open/render, live reload, single-instance
+        # handoff, headless HTML/PDF export. No desktop interaction — these must
+        # pass.
+        env:
+          MDREADER_TEST_LOG_DIR: ${{ runner.temp }}/mdreader-test-logs
+        run: dotnet test tests/MdReader.Integration.Tests -c Release --no-build --filter "suite=blocking"
+
+      - name: Non-blocking UI tests (FlaUI window automation)
+        # Depends on desktop focus on hosted runners; reported, not gating.
+        # Exit criterion for promotion: two consecutive green weeks.
         continue-on-error: true
-        run: dotnet test tests/MdReader.Integration.Tests -c Release --no-build
+        run: dotnet test tests/MdReader.Integration.Tests -c Release --no-build --filter "suite=nonblocking"
+
+      - name: Upload failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-diagnostics
+          path: |
+            ${{ runner.temp }}/mdreader-test-logs/**
+            ${{ runner.temp }}/**/mdreader-test-*.log
+          if-no-files-found: ignore
+
+      - name: Performance budgets (deterministic render pipeline)
+        run: dotnet run --project benchmarks/MdReader.Benchmarks -c Release -- --check
 
       - name: Upload coverage
         uses: actions/upload-artifact@v4

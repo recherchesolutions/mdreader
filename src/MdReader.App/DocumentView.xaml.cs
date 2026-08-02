@@ -26,6 +26,32 @@ public partial class DocumentView : UserControl
     private static readonly MarkdownRenderer Renderer = new();
     private static readonly JsonSerializerOptions JsonOpts = new(JsonSerializerDefaults.Web);
 
+    /// <summary>Crash-recovery snapshots for dirty buffers (shared, appdata-backed).</summary>
+    public static RecoveryStore Recovery { get; } = new();
+
+    /// <summary>Last reader position per file, persisted across restarts.</summary>
+    public static ScrollPositionStore ScrollPositions { get; } = new();
+
+    private System.Windows.Threading.DispatcherTimer? _recoveryDebounce;
+    private readonly NavigationHistory _navHistory = new();
+
+    /// <summary>Headings from the last render (Ctrl+G heading picker).</summary>
+    public IReadOnlyList<HeadingInfo> Headings { get; private set; } = [];
+
+    /// <summary>Word count / reading time of the current buffer (recomputed per render).</summary>
+    public ReadingStats.Result Stats { get; private set; }
+
+    /// <summary>Source line count of the current buffer.</summary>
+    public int TotalLines { get; private set; } = 1;
+
+    /// <summary>Reading progress 0..1, from the top visible source line.</summary>
+    public double Progress => TotalLines <= 1
+        ? 1.0
+        : Math.Clamp((double)_lastKnownLine / TotalLines, 0.0, 1.0);
+
+    public bool CanGoBack => _navHistory.CanGoBack;
+    public bool CanGoForward => _navHistory.CanGoForward;
+
     private readonly AppSettings _settings;
     private TextFileInfo? _file;
     private string _currentText = string.Empty;
@@ -74,6 +100,9 @@ public partial class DocumentView : UserControl
         DiagLog.Write($"InitializeAsync start: {FilePath}");
         _file = TextFileIO.Read(FilePath);
         _currentText = _file.Text;
+
+        // Land where the user left off last session (falls back to the top).
+        _lastKnownLine = ScrollPositions.Get(FilePath) ?? 1;
 
         var pooled = WebViewPool.TryTake();
         bool pageAlreadyLoaded;
@@ -236,10 +265,15 @@ public partial class DocumentView : UserControl
                 if (Mode is ViewMode.Reader or ViewMode.Split)
                 {
                     _lastKnownLine = root.GetProperty("line").GetInt32();
+                    ScrollPositions.Set(FilePath, _lastKnownLine);
                     if (Mode == ViewMode.Split)
                     {
                         SyncScroll(toEditor: true, _lastKnownLine);
                     }
+
+                    // Progress display; scroll events are already throttled to
+                    // ~8/s in reader.js, so this stays cheap.
+                    StateChanged?.Invoke(this, EventArgs.Empty);
                 }
 
                 break;
@@ -248,8 +282,20 @@ public partial class DocumentView : UserControl
                 _lastKnownLine = root.GetProperty("line").GetInt32();
                 break;
 
+            case "jumped":
+                // A deliberate in-document jump (anchor/TOC): record for Back.
+                _navHistory.RecordJump(root.GetProperty("from").GetInt32());
+                StateChanged?.Invoke(this, EventArgs.Empty);
+                break;
+
             case "tocEligibility":
                 TocEligible = root.GetProperty("eligible").GetBoolean();
+                StateChanged?.Invoke(this, EventArgs.Empty);
+                break;
+
+            case "tocClosed":
+                // Closed from inside the page (Escape in the rail).
+                TocOpen = false;
                 StateChanged?.Invoke(this, EventArgs.Empty);
                 break;
 
@@ -342,9 +388,13 @@ public partial class DocumentView : UserControl
         };
 
         var largeDoc = text.Length > 1_500_000;
-        var result = await Task.Run(() => Renderer.Render(text, options));
+        var (result, stats, totalLines) = await Task.Run(() =>
+            (Renderer.Render(text, options), ReadingStats.Count(text), text.AsSpan().Count('\n') + 1));
+        Stats = stats;
+        TotalLines = totalLines;
 
         DocumentTitle = result.Title;
+        Headings = result.Headings;
         DiagLog.Write($"render complete: {result.BodyHtml.Length} chars, {result.Headings.Count} headings");
         PostReader(new
         {
@@ -474,14 +524,15 @@ public partial class DocumentView : UserControl
                 break;
 
             case "contentChanged":
-                if (!_suppressEditorDirty && !IsDirty)
+                if (!_suppressEditorDirty)
                 {
-                    IsDirty = true;
-                    StateChanged?.Invoke(this, EventArgs.Empty);
-                }
-                else if (_suppressEditorDirty)
-                {
-                    // ignored: programmatic set
+                    if (!IsDirty)
+                    {
+                        IsDirty = true;
+                        StateChanged?.Invoke(this, EventArgs.Empty);
+                    }
+
+                    ScheduleRecoverySnapshot();
                 }
 
                 break;
@@ -694,6 +745,7 @@ public partial class DocumentView : UserControl
         _file = TextFileIO.Read(FilePath);
         _currentText = _file.Text;
         IsDirty = false;
+        Recovery.Remove(FilePath); // saved: the snapshot is obsolete
         ResumeWatcher();
         StateChanged?.Invoke(this, EventArgs.Empty);
 
@@ -858,8 +910,69 @@ public partial class DocumentView : UserControl
 
     public void ToggleToc()
     {
-        TocOpen = !TocOpen && TocEligible;
-        PostReader(new { type = "setToc", open = TocOpen });
+        // True toggle: open (focused for keyboard use) or close. Escape inside
+        // the rail also closes it.
+        if (TocOpen)
+        {
+            CloseToc();
+        }
+        else
+        {
+            TocOpen = TocEligible;
+            PostReader(new { type = "setToc", open = TocOpen, focus = true });
+        }
+
+        StateChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    public void CloseToc()
+    {
+        TocOpen = false;
+        PostReader(new { type = "setToc", open = false });
+    }
+
+    /* ------------------------------------------------------------------ *
+     * Jump navigation (Ctrl+G, back/forward)
+     * ------------------------------------------------------------------ */
+    /// <summary>Deliberate jump to a source line; records history.</summary>
+    public void JumpToLine(int line)
+    {
+        _navHistory.RecordJump(_lastKnownLine);
+        ScrollBothTo(line);
+        StateChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    public void GoBack()
+    {
+        if (_navHistory.GoBack(_lastKnownLine) is { } target)
+        {
+            ScrollBothTo(target);
+            StateChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    public void GoForward()
+    {
+        if (_navHistory.GoForward(_lastKnownLine) is { } target)
+        {
+            ScrollBothTo(target);
+            StateChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    private void ScrollBothTo(int line)
+    {
+        _lastKnownLine = line;
+        ScrollPositions.Set(FilePath, line);
+        if (Mode is ViewMode.Reader or ViewMode.Split)
+        {
+            PostReader(new { type = "scrollToLine", line });
+        }
+
+        if (Mode is ViewMode.Source or ViewMode.Split)
+        {
+            PostEditor(new { type = "scrollToLine", line });
+        }
     }
 
     public void ApplyTheme()
@@ -944,10 +1057,70 @@ public partial class DocumentView : UserControl
         ReaderView.CoreWebView2.ShowPrintUI(Microsoft.Web.WebView2.Core.CoreWebView2PrintDialogKind.Browser);
 
     /* ------------------------------------------------------------------ *
+     * Crash recovery
+     * ------------------------------------------------------------------ */
+    private void ScheduleRecoverySnapshot()
+    {
+        _recoveryDebounce ??= CreateRecoveryTimer();
+        _recoveryDebounce.Stop();
+        _recoveryDebounce.Start();
+    }
+
+    private System.Windows.Threading.DispatcherTimer CreateRecoveryTimer()
+    {
+        var timer = new System.Windows.Threading.DispatcherTimer
+        {
+            // Debounced: one snapshot 3s after typing pauses, not per keystroke.
+            Interval = TimeSpan.FromSeconds(3),
+        };
+        timer.Tick += async (_, _) =>
+        {
+            timer.Stop();
+            if (IsDirty)
+            {
+                var text = await RequestEditorContentAsync();
+                Recovery.Save(FilePath, text);
+            }
+        };
+        return timer;
+    }
+
+    /// <summary>User explicitly discarded this buffer's changes.</summary>
+    public void DiscardRecoverySnapshot() => Recovery.Remove(FilePath);
+
+    /// <summary>Puts recovered text into the buffer, marked dirty — never touches the file on disk.</summary>
+    public async Task RestoreRecoveredTextAsync(string text)
+    {
+        _currentText = text;
+        IsDirty = true;
+        StateChanged?.Invoke(this, EventArgs.Empty);
+
+        if (Mode is ViewMode.Source or ViewMode.Split)
+        {
+            _suppressEditorDirty = true;
+            PostEditor(new
+            {
+                type = "setContent",
+                text = _currentText,
+                eol = _file is null ? "\r\n" : TextFileIO.DominantEol(_file),
+                line = 1,
+            });
+            _suppressEditorDirty = false;
+        }
+
+        if (Mode is ViewMode.Reader or ViewMode.Split)
+        {
+            await RenderToReaderAsync(preserveScroll: false);
+        }
+    }
+
+    /* ------------------------------------------------------------------ *
      * Teardown
      * ------------------------------------------------------------------ */
     public void Shutdown()
     {
+        ScrollPositions.Set(FilePath, _lastKnownLine);
+        _recoveryDebounce?.Stop();
         _watcher?.Dispose();
         _watcher = null;
         ReaderView.Dispose();

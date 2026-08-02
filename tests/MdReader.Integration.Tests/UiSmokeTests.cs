@@ -10,6 +10,12 @@ namespace MdReader.Integration.Tests;
 /// Deeper interactions (typing into Monaco) are intentionally avoided — they
 /// depend on desktop focus and are flaky on busy machines.
 /// </summary>
+// Non-blocking in CI: FlaUI window automation on hosted runners depends on an
+// interactive desktop and window focus, which flake independently of app
+// correctness (exit criterion: two consecutive weeks green in the non-blocking
+// lane, then promote). The deterministic critical path is covered by the
+// "blocking" suite (AppHarness log-driven, no desktop interaction).
+[Trait("suite", "nonblocking")]
 public class UiSmokeTests
 {
     private static string FixturePath(string name) =>
