@@ -21,6 +21,14 @@ public partial class MainWindow
     /// <summary>Keeps the per-user HKCU registration current (called off the UI thread).</summary>
     public void EnsureShellRegistration()
     {
+        // MSIX/Store installs declare file associations in the package manifest;
+        // registry writes are virtualized and would be both useless and confusing.
+        if (Services.PackagedContext.IsPackaged)
+        {
+            Dispatcher.InvokeAsync(MaybeShowDefaultAppBar);
+            return;
+        }
+
         try
         {
             _registrar.Register(ExePath, RegisteredExtensions);
