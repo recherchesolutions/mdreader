@@ -12,8 +12,9 @@
    wingetcreate new https://github.com/recherchesolutions/mdreader/releases/download/v<version>/mdreader-setup-<version>.exe
    ```
 
-   Use `RechercheSolutions.mdreader` as the package identifier and fill in the
-   metadata from `manifest-template.yaml` in this folder.
+   Use `recherchesolutions.mdreader` as the package identifier (the casing
+   merged in microsoft/winget-pkgs) and fill in the metadata from
+   `manifest-template.yaml` in this folder.
 4. `wingetcreate submit` opens the PR against `microsoft/winget-pkgs`.
 
 ## Every release after

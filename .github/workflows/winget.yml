@@ -19,6 +19,8 @@ jobs:
       - name: Submit to winget-pkgs
         uses: vedantmgoyal9/winget-releaser@main
         with:
-          identifier: RechercheSolutions.mdreader
+          # Must match the identifier as merged in microsoft/winget-pkgs
+          # (submitted lowercase in PR #411093).
+          identifier: recherchesolutions.mdreader
           installers-regex: 'mdreader-setup-.*\.exe$'
           token: ${{ secrets.WINGET_TOKEN }}
