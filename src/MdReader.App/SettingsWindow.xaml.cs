@@ -54,6 +54,14 @@ public partial class SettingsWindow : Window
         RemoteImagesBox.IsChecked = settings.LoadRemoteImages;
         UpdateCheckBox.IsChecked = settings.CheckForUpdates;
 
+        if (Services.PackagedContext.IsPackaged)
+        {
+            // Store installs update through the Store, and file associations are
+            // fixed by the package manifest — hide the knobs that don't apply.
+            UpdateCheckBox.Visibility = System.Windows.Visibility.Collapsed;
+            ExtensionList.Visibility = System.Windows.Visibility.Collapsed;
+        }
+
         foreach (var extension in FileTypes.OptionalExtensions)
         {
             var box = new CheckBox
