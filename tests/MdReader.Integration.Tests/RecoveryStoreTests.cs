@@ -4,6 +4,7 @@ using MdReader.App.Services;
 namespace MdReader.Integration.Tests;
 
 /// <summary>Unit tests for crash-recovery snapshot storage (sandboxed root dir).</summary>
+[Trait("suite", "blocking")]
 public sealed class RecoveryStoreTests : IDisposable
 {
     private readonly string _root;

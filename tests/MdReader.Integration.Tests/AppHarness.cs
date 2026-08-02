@@ -82,6 +82,13 @@ public sealed class AppHarness : IDisposable
         return false;
     }
 
+    /// <summary>Last portion of the diagnostic log, for assertion failure messages.</summary>
+    public string LogTail(int chars = 800)
+    {
+        var log = ReadLog();
+        return log.Length <= chars ? log : log[^chars..];
+    }
+
     public int CountOf(string marker)
     {
         var log = ReadLog();

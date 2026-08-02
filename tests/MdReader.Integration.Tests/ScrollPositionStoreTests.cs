@@ -3,6 +3,7 @@ using MdReader.App.Services;
 
 namespace MdReader.Integration.Tests;
 
+[Trait("suite", "blocking")]
 public sealed class ScrollPositionStoreTests : IDisposable
 {
     private readonly string _path;
