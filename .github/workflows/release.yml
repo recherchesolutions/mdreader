@@ -25,8 +25,11 @@ jobs:
           $v = "${{ github.ref_name }}".TrimStart("v")
           "version=$v" >> $env:GITHUB_OUTPUT
 
-      - name: Test
-        run: dotnet test tests/MdReader.Core.Tests tests/MdReader.Shell.Tests -c Release
+      - name: Test (Core)
+        run: dotnet test tests/MdReader.Core.Tests -c Release
+
+      - name: Test (Shell)
+        run: dotnet test tests/MdReader.Shell.Tests -c Release
 
       - name: Publish app (self-contained win-x64)
         run: >

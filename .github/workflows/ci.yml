@@ -24,9 +24,18 @@ jobs:
       - name: Build
         run: dotnet build -c Release --no-restore
 
-      - name: Unit tests with coverage (Core + Shell)
+      # dotnet test accepts exactly one project (MSB1008), so Core and Shell run
+      # as separate steps.
+      - name: Unit tests with coverage (Core)
         run: >
-          dotnet test tests/MdReader.Core.Tests tests/MdReader.Shell.Tests
+          dotnet test tests/MdReader.Core.Tests
+          -c Release --no-build
+          --collect:"XPlat Code Coverage"
+          --results-directory coverage
+
+      - name: Unit tests with coverage (Shell)
+        run: >
+          dotnet test tests/MdReader.Shell.Tests
           -c Release --no-build
           --collect:"XPlat Code Coverage"
           --results-directory coverage
