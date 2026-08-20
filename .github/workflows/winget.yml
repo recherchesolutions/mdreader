@@ -21,6 +21,23 @@ jobs:
   winget:
     runs-on: windows-latest
     steps:
+      - name: Resolve Winget fork owner
+        id: winget-owner
+        shell: pwsh
+        env:
+          WINGET_TOKEN: ${{ secrets.WINGET_TOKEN }}
+        run: |
+          $headers = @{
+            Authorization = "Bearer $env:WINGET_TOKEN"
+            Accept = "application/vnd.github+json"
+            "X-GitHub-Api-Version" = "2022-11-28"
+          }
+          $owner = (Invoke-RestMethod -Uri "https://api.github.com/user" -Headers $headers).login
+          if ([string]::IsNullOrWhiteSpace($owner)) {
+            throw "Unable to resolve the GitHub account that owns WINGET_TOKEN."
+          }
+          "login=$owner" >> $env:GITHUB_OUTPUT
+
       - name: Submit to winget-pkgs
         uses: vedantmgoyal9/winget-releaser@main
         with:
@@ -31,4 +48,7 @@ jobs:
           # release events supply the tag automatically; manual runs must not
           # fall back to the selected branch name (usually "main").
           release-tag: ${{ github.event.release.tag_name || inputs.release_tag }}
+          # The fork belongs to the PAT account, which can differ from the
+          # organization that owns this repository.
+          fork-user: ${{ steps.winget-owner.outputs.login }}
           token: ${{ secrets.WINGET_TOKEN }}
