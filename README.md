@@ -37,7 +37,9 @@ vault, no notebook, no sync, no account.
 - **Reading info.** Unobtrusive word count, estimated reading time, and
   progress in the status bar.
 - **Single instance with tabs**, drag & drop, recent files, find in both modes,
-  zoom that persists.
+  zoom that persists. Tabs close from their inline ✕ or a middle-click, and a
+  right-click menu offers copy full path, copy file name, and open containing
+  folder. Double-clicking a file always brings the window to the foreground.
 - **Windows integration.** Explorer offers **Open in mdreader** and
   **Export to PDF…** for registered Markdown files. PDF export always asks
   where to save and never overwrites silently.
@@ -101,7 +103,7 @@ Windows 11 and any machine with Edge).
 | `Ctrl+S` | Save |
 | `Ctrl+P` | Print |
 | `Ctrl` `+` / `-` / `0` | Zoom |
-| `Ctrl+O` / `Ctrl+W` / `Ctrl+Tab` | Open / close tab / next tab |
+| `Ctrl+O` / `Ctrl+W` / `Ctrl+Tab` | Open / close tab / next tab (tabs also close via their ✕ or middle-click) |
 | `Ctrl+Shift+T` | Reopen the most recently closed tab |
 
 ## Developer CLI
