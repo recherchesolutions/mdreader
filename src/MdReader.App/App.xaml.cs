@@ -48,12 +48,7 @@ public partial class App : Application
         _singleInstance.Activated += (_, act) => Dispatcher.InvokeAsync(async () =>
         {
             DiagLog.Write($"activation received: {act.FilePath}");
-            if (window.WindowState == WindowState.Minimized)
-            {
-                window.WindowState = WindowState.Normal;
-            }
-
-            window.Activate();
+            BringToForeground(window);
             if (act.FilePath is not null)
             {
                 await window.OpenFileAsync(act.FilePath, act.OpenInSource ? ViewMode.Source : null);
@@ -84,6 +79,30 @@ public partial class App : Application
 
         // Keep the per-user registration fresh (HKCU only, additive, idempotent).
         _ = Task.Run(window.EnsureShellRegistration);
+    }
+
+    /// <summary>
+    /// Brings the window to the foreground on single-instance activation
+    /// (double-clicking a file in Explorer). Works together with the sender's
+    /// AllowSetForegroundWindow grant (see SingleInstance); the Topmost pulse
+    /// is the fallback for the cases Windows still refuses.
+    /// </summary>
+    private static void BringToForeground(Window window)
+    {
+        if (window.WindowState == WindowState.Minimized)
+        {
+            window.WindowState = WindowState.Normal;
+        }
+
+        window.Show();
+        window.Activate();
+
+        if (!window.IsActive)
+        {
+            window.Topmost = true;
+            window.Topmost = false;
+            window.Focus();
+        }
     }
 
     protected override void OnExit(ExitEventArgs e)
