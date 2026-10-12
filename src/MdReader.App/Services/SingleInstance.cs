@@ -1,5 +1,6 @@
 using System.IO;
 using System.IO.Pipes;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 
 namespace MdReader.App.Services;
@@ -30,6 +31,11 @@ public sealed class SingleInstance : IDisposable
     public sealed record Activation(string? FilePath, bool OpenInSource);
 
     public event EventHandler<Activation>? Activated;
+
+    private const int AsfwAny = -1;
+
+    [DllImport("user32.dll")]
+    private static extern bool AllowSetForegroundWindow(int processId);
 
     /// <summary>
     /// Fast pre-WPF handoff: if an owner instance exists, send it the
@@ -85,6 +91,11 @@ public sealed class SingleInstance : IDisposable
     {
         try
         {
+            // This process has foreground rights (the user just double-clicked);
+            // without passing them on, Windows blocks the owner's Activate()
+            // and the window stays behind Explorer.
+            AllowSetForegroundWindow(AsfwAny);
+
             using var client = new NamedPipeClientStream(".", PipeName, PipeDirection.Out);
             client.Connect(timeout: 2000);
             using var writer = new StreamWriter(client);

@@ -103,12 +103,7 @@ public partial class MainWindow : Window
         view.FindResultChanged += (_, r) => Dispatcher.InvokeAsync(() => FindCount.Text = r.total == 0 ? "No matches" : $"{r.current} of {r.total}");
         view.StatusMessage += (_, msg) => Dispatcher.InvokeAsync(() => SetStatus(msg));
 
-        var tab = new TabItem
-        {
-            Header = view.TabTitle,
-            Content = view,
-        };
-
+        var tab = CreateTab(view);
         Tabs.Items.Add(tab);
         Tabs.SelectedItem = tab;
         Tabs.Visibility = Visibility.Visible;
@@ -139,13 +134,131 @@ public partial class MainWindow : Window
         UpdateCommandStates();
     }
 
+    /// <summary>
+    /// Tab with inline close button (Notepad++-style), middle-click close, and
+    /// a right-click menu (copy full path, open containing folder, close).
+    /// </summary>
+    private TabItem CreateTab(DocumentView view)
+    {
+        var title = new TextBlock
+        {
+            Text = view.TabTitle,
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+
+        var close = new Button
+        {
+            Content = "", // MDL2 ChromeClose glyph
+            FontFamily = new System.Windows.Media.FontFamily("Segoe MDL2 Assets"),
+            FontSize = 9,
+            Padding = new Thickness(3),
+            Margin = new Thickness(8, 1, -6, 0),
+            Background = System.Windows.Media.Brushes.Transparent,
+            BorderThickness = new Thickness(0),
+            Cursor = System.Windows.Input.Cursors.Arrow,
+            VerticalAlignment = VerticalAlignment.Center,
+            ToolTip = "Close tab (Ctrl+W)",
+        };
+        System.Windows.Automation.AutomationProperties.SetName(close, $"Close {Path.GetFileName(view.FilePath)}");
+
+        var header = new StackPanel { Orientation = Orientation.Horizontal };
+        header.Children.Add(title);
+        header.Children.Add(close);
+
+        var tab = new TabItem
+        {
+            Header = header,
+            Content = view,
+            ToolTip = view.FilePath,
+        };
+
+        close.Click += async (_, e) =>
+        {
+            e.Handled = true;
+            await CloseTabAsync(tab);
+        };
+
+        // Middle-click anywhere on the tab closes it, like browsers/Notepad++.
+        tab.PreviewMouseDown += async (_, e) =>
+        {
+            if (e.ChangedButton == System.Windows.Input.MouseButton.Middle)
+            {
+                e.Handled = true;
+                await CloseTabAsync(tab);
+            }
+        };
+
+        tab.ContextMenu = CreateTabContextMenu(view, tab);
+        return tab;
+    }
+
+    private ContextMenu CreateTabContextMenu(DocumentView view, TabItem tab)
+    {
+        var menu = new ContextMenu();
+
+        var copyPath = new MenuItem { Header = "Copy full path" };
+        copyPath.Click += (_, _) =>
+        {
+            try
+            {
+                Clipboard.SetText(view.FilePath);
+                SetStatus($"Copied: {view.FilePath}");
+            }
+            catch (System.Runtime.InteropServices.COMException)
+            {
+                SetStatus("Clipboard is busy — try again.");
+            }
+        };
+        menu.Items.Add(copyPath);
+
+        var copyName = new MenuItem { Header = "Copy file name" };
+        copyName.Click += (_, _) =>
+        {
+            try
+            {
+                Clipboard.SetText(Path.GetFileName(view.FilePath));
+                SetStatus($"Copied: {Path.GetFileName(view.FilePath)}");
+            }
+            catch (System.Runtime.InteropServices.COMException)
+            {
+                SetStatus("Clipboard is busy — try again.");
+            }
+        };
+        menu.Items.Add(copyName);
+
+        var openFolder = new MenuItem { Header = "Open containing folder" };
+        openFolder.Click += (_, _) =>
+        {
+            try
+            {
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(
+                    "explorer.exe", $"/select,\"{view.FilePath}\"")
+                { UseShellExecute = true });
+            }
+            catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException)
+            {
+                SetStatus($"Could not open folder: {ex.Message}");
+            }
+        };
+        menu.Items.Add(openFolder);
+
+        menu.Items.Add(new Separator());
+
+        var closeItem = new MenuItem { Header = "Close tab", InputGestureText = "Ctrl+W" };
+        closeItem.Click += async (_, _) => await CloseTabAsync(tab);
+        menu.Items.Add(closeItem);
+
+        return menu;
+    }
+
     private void OnDocumentStateChanged(DocumentView view)
     {
         foreach (TabItem item in Tabs.Items)
         {
-            if (ReferenceEquals(item.Content, view))
+            if (ReferenceEquals(item.Content, view) &&
+                item.Header is StackPanel header && header.Children[0] is TextBlock title)
             {
-                item.Header = view.TabTitle;
+                title.Text = view.TabTitle;
             }
         }
 
