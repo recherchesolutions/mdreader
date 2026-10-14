@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using AngleSharp.Html.Parser;
 using FluentAssertions;
 
@@ -47,7 +48,7 @@ public sealed class HeadlessExportTests : IDisposable
     }
 
     [Fact]
-    public void Export_html_renders_both_responsive_and_fixed_width_diagrams()
+    public void Export_html_keeps_all_diagram_nodes_inside_the_svg_viewbox()
     {
         var output = Path.Combine(_outDir, "mermaid-sizing.html");
         RunHeadless($"\"{Fixture("mermaid-sizing.md")}\" --export-html \"{output}\"").Should().Be(0);
@@ -58,7 +59,40 @@ public sealed class HeadlessExportTests : IDisposable
         document.QuerySelectorAll(".mermaid-error").Should().BeEmpty();
         diagrams[0].TextContent.Should().Contain("Deploy to DEV");
         diagrams[1].TextContent.Should().Contain("Production");
+
+        // These fixture charts use rectangular nodes with a single translate.
+        // Checking the SVG element's CSS size alone misses an incorrect viewBox:
+        // the element can fit the page while its right/bottom nodes are clipped.
+        foreach (var svg in diagrams)
+        {
+            var view = Numbers(svg.GetAttribute("viewBox")!);
+            view.Should().HaveCount(4);
+            var nodes = svg.QuerySelectorAll("g.node");
+            nodes.Should().NotBeEmpty();
+            foreach (var node in nodes)
+            {
+                var transform = node.GetAttribute("transform")!;
+                transform.Should().StartWith("translate(").And.EndWith(")");
+                var position = Numbers(transform["translate(".Length..^1]);
+                position.Should().HaveCount(2);
+                var rect = node.QuerySelector("rect.label-container")!;
+                rect.Should().NotBeNull();
+                var left = position[0] + double.Parse(rect.GetAttribute("x")!, CultureInfo.InvariantCulture);
+                var top = position[1] + double.Parse(rect.GetAttribute("y")!, CultureInfo.InvariantCulture);
+                var right = left + double.Parse(rect.GetAttribute("width")!, CultureInfo.InvariantCulture);
+                var bottom = top + double.Parse(rect.GetAttribute("height")!, CultureInfo.InvariantCulture);
+                left.Should().BeGreaterThanOrEqualTo(view[0] - 0.1);
+                top.Should().BeGreaterThanOrEqualTo(view[1] - 0.1);
+                right.Should().BeLessThanOrEqualTo(view[0] + view[2] + 0.1);
+                bottom.Should().BeLessThanOrEqualTo(view[1] + view[3] + 0.1);
+            }
+        }
     }
+
+    private static double[] Numbers(string value) => value
+        .Split([' ', ','], StringSplitOptions.RemoveEmptyEntries)
+        .Select(part => double.Parse(part, CultureInfo.InvariantCulture))
+        .ToArray();
 
     [Fact]
     public void Export_pdf_produces_valid_pdf()

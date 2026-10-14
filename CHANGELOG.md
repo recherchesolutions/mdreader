@@ -23,6 +23,9 @@ All notable changes to mdreader are documented here. The format follows
 
 - Mermaid diagrams now align with the left edge of the reader column and
   avoid the extra inline-image baseline gap, while retaining responsive sizing.
+- Correct Mermaid SVG viewing bounds after insertion into the reader. WebView2
+  could measure incorrect bounds during rendering and clip right or bottom nodes
+  even when the diagram element itself fit the page.
 - One-click releases now honor protected `main` by merging release metadata
   through an automated PR, and publish with the classic token so downstream
   Winget automation is triggered.
