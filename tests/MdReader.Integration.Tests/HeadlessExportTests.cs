@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using AngleSharp.Html.Parser;
 using FluentAssertions;
 
 namespace MdReader.Integration.Tests;
@@ -43,6 +44,20 @@ public sealed class HeadlessExportTests : IDisposable
         html.Should().Contain("<svg", "mermaid diagrams are pre-rendered into the export");
         html.Should().Contain("mermaid-error", "the invalid diagram keeps its inline error note");
         html.Should().NotContain("<script", "exports carry no scripts");
+    }
+
+    [Fact]
+    public void Export_html_renders_both_responsive_and_fixed_width_diagrams()
+    {
+        var output = Path.Combine(_outDir, "mermaid-sizing.html");
+        RunHeadless($"\"{Fixture("mermaid-sizing.md")}\" --export-html \"{output}\"").Should().Be(0);
+
+        var document = new HtmlParser().ParseDocument(File.ReadAllText(output));
+        var diagrams = document.QuerySelectorAll(".mermaid-diagram > svg");
+        diagrams.Should().HaveCount(2);
+        document.QuerySelectorAll(".mermaid-error").Should().BeEmpty();
+        diagrams[0].TextContent.Should().Contain("Deploy to DEV");
+        diagrams[1].TextContent.Should().Contain("Production");
     }
 
     [Fact]
