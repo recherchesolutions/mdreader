@@ -4,20 +4,11 @@ All notable changes to mdreader are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.6.0] - 2026-10-12
-
-### Added
-
-- Close button on every tab (Notepad++-style); middle-click also closes.
-- Tab right-click menu: copy full path, copy file name, open containing
-  folder, close tab.
-
-### Fixed
-
-- Double-clicking a markdown file now brings the running mdreader window to
-  the foreground (foreground rights are handed over during single-instance
-  activation).
 ## [Unreleased]
+
+### Changed
+
+- Release builds bundle the .NET 10.0.14 runtime.
 
 ### Fixed
 
@@ -32,6 +23,20 @@ All notable changes to mdreader are documented here. The format follows
 - Large-document correctness tests no longer use a flaky wall-clock assertion
   under coverage instrumentation; performance remains gated by benchmarks.
 - GitHub Actions dependencies use their current Node.js runtime generations.
+
+## [0.6.0] - 2026-10-12
+
+### Added
+
+- Close button on every tab (Notepad++-style); middle-click also closes.
+- Tab right-click menu: copy full path, copy file name, open containing
+  folder, close tab.
+
+### Fixed
+
+- Double-clicking a markdown file now brings the running mdreader window to
+  the foreground (foreground rights are handed over during single-instance
+  activation).
 
 ## [0.5.0] - 2026-08-02
 
