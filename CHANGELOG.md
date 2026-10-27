@@ -6,6 +6,8 @@ All notable changes to mdreader are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-10-27
+
 ### Changed
 
 - Release builds bundle the .NET 10.0.14 runtime.
