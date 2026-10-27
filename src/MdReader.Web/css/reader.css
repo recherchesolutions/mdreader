@@ -444,8 +444,12 @@ details.front-matter[open] > summary { margin-bottom: 8px; }
 /* --------------------------------------------------------------------------
    Mermaid diagrams and math
    -------------------------------------------------------------------------- */
-.mermaid-diagram { text-align: center; margin: 0 0 1em; overflow-x: auto; }
-.mermaid-diagram svg { max-width: 100%; height: auto; }
+.mermaid-diagram { text-align: left; margin: 0 0 1em; overflow-x: auto; }
+.mermaid-diagram > svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
 
 .mermaid-error {
   color: var(--error-fg);

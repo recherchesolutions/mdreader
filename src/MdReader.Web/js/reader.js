@@ -227,8 +227,29 @@
       .then(function (result) {
         container.innerHTML = result.svg;
         if (preToReplace) { preToReplace.replaceWith(container); }
+        // Mermaid measures a temporary SVG before inserting the finished chart.
+        // WebView2 can return stale bounds there. Measure the attached chart
+        // after layout, otherwise a valid diagram can have clipped right/bottom
+        // nodes even when the SVG element itself fits the reader column.
+        return new Promise(function (resolve, reject) {
+          var finished = false;
+          function fit() {
+            if (finished) { return; }
+            finished = true;
+            cancelAnimationFrame(frame);
+            clearTimeout(timer);
+            try {
+              fitMermaidBounds(container);
+              resolve();
+            } catch (err) { reject(err); }
+          }
+          var frame = requestAnimationFrame(fit);
+          // Hidden reader tabs can pause animation frames. getBBox forces
+          // layout too, so exports need not wait for a tab to become visible.
+          var timer = setTimeout(fit, 100);
+        });
       })
-        .catch(function (err) {
+      .catch(function (err) {
         // Never a blank space: keep the code block, add an inline error note.
         var note = document.createElement("p");
         note.className = "mermaid-error";
@@ -241,6 +262,25 @@
         var temp = document.getElementById("d" + id) || document.getElementById(id);
         if (temp && !container.contains(temp)) { temp.remove(); }
       });
+  }
+
+  function fitMermaidBounds(container) {
+    var svg = container.querySelector("svg");
+    if (!svg || !svg.isConnected) { return; }
+    var bounds = svg.getBBox();
+    var view = svg.viewBox.baseVal;
+    if (!(bounds.width > 0 && bounds.height > 0 && view.width > 0 && view.height > 0)) { return; }
+    if (bounds.x >= view.x && bounds.y >= view.y &&
+        bounds.x + bounds.width <= view.x + view.width &&
+        bounds.y + bounds.height <= view.y + view.height) { return; }
+
+    var padding = 8;
+    var width = bounds.width + padding * 2;
+    var height = bounds.height + padding * 2;
+    svg.setAttribute("viewBox", [bounds.x - padding, bounds.y - padding, width, height].join(" "));
+    svg.setAttribute("width", width);
+    svg.setAttribute("height", height);
+    svg.style.maxWidth = width + "px";
   }
 
   /* ------------------------------------------------------------------ *

@@ -1,0 +1,18 @@
+﻿<h1 id="mermaid-sizing" data-source-line="1">Mermaid sizing</h1>
+<p data-source-line="3">A small chart should keep its natural size on a wide page.</p>
+<pre><code class="language-mermaid" data-source-line="5">flowchart TD
+    A[Developer branch] --&gt; B[Review and checks]
+    B --&gt; C[Merge into main]
+    C --&gt; D[Deploy to DEV]
+</code></pre>
+<p data-source-line="12">A fixed-width chart must still fit a narrow reader window.</p>
+<pre><code class="language-mermaid" data-source-line="14">%%{init: {"flowchart": {"useMaxWidth": false}}}%%
+flowchart LR
+    A[Select changes] --&gt; B[Validate dependencies]
+    B --&gt; C[Approve complete scope]
+    C --&gt; D[Promotion PRs]
+    D --&gt; E[Build candidate]
+    E --&gt; F[Release QA]
+    F --&gt; G[Staging]
+    G --&gt; H[Production]
+</code></pre>
